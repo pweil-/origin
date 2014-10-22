@@ -34,7 +34,9 @@ func (hr *HaproxyRouter) writeServer(f *os.File, id string, s *router.Endpoint) 
 }
 
 func (hr *HaproxyRouter) WriteConfig() {
-	//ReadRoutes()
+	hr.ReadRoutes()
+	glog.V(4).Infof("Found routes: %v", hr.GlobalRoutes)
+
 	hf, herr := os.Create(HostMapFile)
 	if herr != nil {
 		glog.Fatalf("Error creating host map file - %s", herr.Error())
@@ -50,6 +52,7 @@ func (hr *HaproxyRouter) WriteConfig() {
 	f.WriteString(string(dat))
 	for frontendname, frontend := range hr.GlobalRoutes {
 		if len(frontend.HostAliases) == 0 || len(frontend.EndpointTable) == 0 {
+			glog.V(4).Infof("Frontend %s had no host aliases or endpoints, skipping")
 			continue
 		}
 		for host := range frontend.HostAliases {

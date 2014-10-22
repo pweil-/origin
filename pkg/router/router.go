@@ -24,6 +24,11 @@ const (
 	RouteFile = "/var/lib/containers/router/routes.json"
 )
 
+const (
+	ServiceVersion = ".v3"
+	Domain = ".rhcloud.com"
+)
+
 type Frontend struct {
 	Name          string
 	HostAliases   []string
@@ -185,8 +190,17 @@ func (routes *Routes) AddRoute(frontendname string, fePath string, bePath string
 		id = makeID()
 		a.Backends[id] = Backend{id, fePath, bePath, protocols, epIDs, TERM_EDGE, nil}
 	}
+
+	addDefaultHostAlias(&a)
 	routes.GlobalRoutes[a.Name] = a
 	routes.WriteRoutes()
+}
+
+//if no host aliases exist add a default one.  Otherwise, take no action
+func addDefaultHostAlias(f *Frontend){
+	if len(f.HostAliases) == 0 {
+		f.HostAliases = []string{f.Name + ServiceVersion + Domain}
+	}
 }
 
 func cmpStrSlices(first []string, second []string) bool {
