@@ -59,9 +59,28 @@ Cons:
 
 There should be a new OpenShift resource called `Router`.  Its fields should include:
 
-1.  Type: the type of the router backend to use (HAProxy, nginx	, etc)
+1.  Backend: the `RouterBackend` configuration for this router
 2.  Label: the label that associates resources (Endpoints, Routes, Services) with this router
 3.  HA: whether this router should be run in HA mode
+
+The `RouterBackend` type will specify the backend configuration for a `Router` record: which
+backend type to use and any options for each possible type:
+
+    type RouterBackend struct {
+    	Type RouterBackendType
+    	HAProxyParams *HAProxyBackendParams
+    	CustomParams  *CustomBackendParams
+    }
+
+    type RouterBackendType string
+
+    const (
+        RouterBackendHAProxy RouterBackendType = "haproxy"
+        RouterBackendNginx   RouterBackendType = "nginx"
+        RouterBackendCustom  RouterBackendType = "custom"
+    )
+
+The custom type allows a user to specify an arbitrary pod template for the router.
 
 #### The Router Subsystem State Reconciler
 
