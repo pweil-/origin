@@ -38,12 +38,11 @@ However, this also introduces more code for  an object that will likely be dealt
 anyway.  Routers should be a low touch configuration item that do not require many custom commands
 for daily administration.
 
+Pros:
+
 - Configuration lives in etcd, just like any other resource
 - Shards are configured via custom commands and `json` syntax
 - Routers are known to OpenShift; the system ensures the proper configuration is running
-
-Pros: 
-
 - Custom administration syntax
 - Deal with routers as infra
 - The system knows about routers for route allocation and visualization with no extra effort
@@ -107,19 +106,25 @@ The `Route` resource should have a new field added:
     }
 
 The `RouteAllocationStatus` type represents the allocation status of a route; it can be valued
-`NEW` or `ALLOCATED`.
+`new` or `allocated`.
 
 #### Route Allocator
 
-We will introduce `RouteAllocator`, a state reconciler that watches the `Route` resource and allocates new routes.
-The allocator will use a pluggable allocation strategy, allowing users to author their own strategies.
-Our initial strategy implementation will be a simple round-robin strategy.
+We will introduce `RouteAllocator`, a state reconciler that watches the `Route` resource and
+allocates new routes.  The allocator will use a pluggable allocation strategy, allowing users to
+author their own strategies.  Our initial strategy implementation will be a simple round-robin
+strategy.
+
+The `RouteAllocator`'s will process `Route` resource events as follows:
+
+1.  The `RouteAllocator` will periodically list the unallocated `Route`s.
+2.  Each unallocated `Route` record is passed to the `RouteAllocator` interface for allocation
+3.  If the route is successfully allocated, the Route status is updated to `allocated`
 
 ## User Requests a Route
 
 when they have their own dns name then need to point it to our nameservers, map their dns to a shard name with a c record?
 when requesting default dns we should take the name, allocate it, and provide then a final dns name?
-
 
 ## Create DNS
 
