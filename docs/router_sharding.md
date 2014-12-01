@@ -128,6 +128,75 @@ when requesting default dns we should take the name, allocate it, and provide th
 
 ## Create DNS
 
-Option 1: internal dns impl that syncs with routes
-Option 2: manual 
+In order to facilitate supplying external DNS for applications in the OpenShift system the router configuration will be 
+modified with an indicator that the DNS name is user owned or system controlled.
+
+     {
+        "type": "route",
+        ...
+        "dnsType": "system|user",
+     }
+
+1.  System supplied DNS: this indicates that the user *DOES NOT* own the domain name and is requesting that OpenShift 
+supply it.  The user provides a `Host` that is used as a prefix to the final DNS name which is determined based on the router 
+allocation and takes the form of: `<namespace>-<Host>.<shard>.v3.rhcloud.com.
+
+1.  User supplied DNS: this indicates that the user currently owns a domain name and will be able to configure their 
+registrar to indicate that OpenShift's DNS servers will provide DNS look ups for the domain.  When a user controlled DNS 
+entry is request no manipulation will be done to the `Host` field of the `route` configuration.
+
+
+#### DNS Implementations
+
+DNS plugins will be able to watch the `router` configuration to determine the correct zone files to set up with wildcard 
+entries.  It will also be able to watch the `route` configuration to make entries for user supplied DNS requests that map 
+to a shard.
+
+Example: 
+    
+    shard1.zone:
+    $ORIGIN shard1.v3.rhcloud.com.
+    
+    @       IN      SOA     . shard1.v3.rhcloud.com. (
+                         2009092001         ; Serial
+                             604800         ; Refresh
+                              86400         ; Retry
+                            1206900         ; Expire
+                                300 )       ; Negative Cache TTL
+            IN      NS      ns1.v3.rhcloud.com.
+    ns1     IN      A       127.0.0.1
+    *       IN      A       10.245.2.2      ; active/active DNS round robin
+            IN      A       10.245.2.3      ; active/active DNS round robin
+            
+    shard2.zone:
+    $ORIGIN shard2.v3.rhcloud.com.
+    
+    @       IN      SOA     . shard2.v3.rhcloud.com. (
+                         2009092001         ; Serial
+                             604800         ; Refresh
+                              86400         ; Retry
+                            1206900         ; Expire
+                                300 )       ; Negative Cache TTL
+            IN      NS      ns1.v3.rhcloud.com.
+    ns1     IN      A       127.0.0.1
+    *       IN      A       10.245.2.4      ; active/active DNS round robin
+            IN      A       10.245.2.5      ; active/active DNS round robin 
+                       
+    user_supplied.zone:
+    $ORIGIN example.com.
+    
+    @       IN      SOA     . example.com. (
+                         2009092001         ; Serial
+                             604800         ; Refresh
+                              86400         ; Retry
+                            1206900         ; Expire
+                                300 )       ; Negative Cache TTL
+            IN      NS      ns1.v3.rhcloud.com.
+    ns1     IN      A       127.0.0.1
+    www     IN      CNAME   shard1.v3.rhcloud.com ; points to shard                           
+
+
+
+
+
 
