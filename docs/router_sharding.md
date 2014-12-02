@@ -1,7 +1,6 @@
 - how is router configuration visualized from a user perspective
 - how is router configuration visualized from an admin perspective
-- how is a shard chosen for a route
-- how is a user notified of a route allocation and final dns
+- how is a user notified of a route route binding and final dns
 - how does a user request default dns name vs custom dns name
 - router fronting with DNS, how are entries created
 
@@ -45,19 +44,19 @@ Pros:
 - Routers are known to OpenShift; the system ensures the proper configuration is running
 - Custom administration syntax
 - Deal with routers as infra
-- The system knows about routers for route allocation and visualization with no extra effort
+- The system knows about routers for route route binding and visualization with no extra effort
 
 Cons: 
 
 - More divergent from Kubernetes codebase initially, though we may be able to generalize parts of
   this approach to sharding to other resources and controllers which allow sharding
 
-## Route Allocation
+## Route Scheduling
 
-Route allocation is the process of assigning a `Route` record to a specific `Router` and setting up
-DNS for routes.  We will treat the problem of route allocation similarly to the problem of
-scheduling a Pod.  There will be a new state reconciler to allocate Routes after they are created
-and a new field to express allocation status in the `Route` resource.
+Route scheduling is the process of assigning a `Route` record to a specific `Router` and setting up
+DNS for routes.  We will treat the problem of route scheduling similarly to the problem of
+pod scheduling.  There will be a new state reconciler to schedule Routes after they are created
+and a new field to express route binding status in the `Route` resource.
 
 ### Proposed Implementation
 
@@ -76,62 +75,73 @@ The `Route` resource should have a new field added:
 
     type Route {
         // other fields not shown
-        RouterDNS        string
-        AllocationStatus RouteAllocationStatus
+        Status RouteStatus
     }
 
-The `RouteAllocationStatus` type represents the allocation status of a route; it can be valued
-`new` or `allocated`.
+    type RouteStatus struct {
+        Phase RoutePhase
+        DNS   string
+    }
+
+    type RoutePhase string
+
+    const (
+        RoutePhaseNew       RoutePhase = "new"
+        RoutePhaseScheduled RoutePhase = "scheduled"
+    )
+
+The `RouteStatus` type represents the overall status of a `Route`. The `RoutePhase` type
+represents the phase of a route; it can be valued `new` or `scheduled`.
 
 #### Changes to the `Route` REST API
 
 The `Route` REST API will be changed to validate that:
 
-1.  The `RouterDNS` and `AllocationStatus` fields of a `Route` are not set during create
-2.  The value of `RouterDNS` and `AllocationStatus` fields do not change during update
+1.  The `DNS` and `Phase` fields of a `Route` are not set during create
+2.  The value of `DNS` and `Phase` fields do not change during update
 
-#### The `RouteAllocation` Resource
+#### The `RouteBinding` Resource
 
-The `RouteAllocation` resource describes the association of a `Route` with a `Router`.  Its fields
+The `RouteBinding` resource describes the association of a `Route` with a `Router`.  Its fields
 are:
 
-1.  `RouteNamespace`: The namespace of the route being allocated
-2.  `RouteName`: The name of the route being allocated
-3.  `RouterDNS`: The DNS of the router serving the route
+1.  `RouteNamespace`: The namespace of the route being scheduled
+2.  `RouteName`: The name of the route being scheduled
+3.  `DNS`: The DNS of the router serving the route
 
-The `RouteAllocation` REST API will be the only path that is allowed to update the values of the
-`RouterDNS` and `AllocationStatus` fields.  The REST API will apply the allocation to the `Route`
+The `RouteBinding` REST API will be the only path that is allowed to update the values of the
+`DNS` and `Phase` fields.  The REST API will apply the route binding to the `Route`
 record during `Create`.
 
-#### The `RouteAllocator` state reconciler
+#### The `RouteScheduler` state reconciler
 
-We will introduce `RouteAllocator`, a state reconciler that watches the `Route` resource and
-allocates new routes.  The allocator will use a pluggable allocation strategy, allowing users to
-author their own strategies.  Our initial strategy implementation will be a simple round-robin
+We will introduce `RouteScheduler`, a state reconciler that watches the `Route` resource and
+schedules new routes.  The route scheduler will use a pluggable sheduling strategy, allowing users
+to author their own strategies.  Our initial strategy implementation will be a simple round-robin
 strategy.
 
-The `RouteAllocator` processes `Route` resources as follows:
+The `RouteScheduler` processes `Route` resources as follows:
 
-1.  The `RouteAllocator` watches for newly created (and thus unallocated) `Route`s and
-    periodically list the unallocated `Route`s to retry
-2.  The allocator passes unallocated `Route` records to the `RouteAllocationStrategy` interface
-3.  The allocator creates a `RouteAllocation` for the  route and router if the allocation is
+1.  The `RouteScheduler` watches for newly created (and thus unscheduled) `Route`s and
+    periodically list the unscheduled `Route`s to retry
+2.  The scheduler passes unscheduled `Route` records to the `RouteSchedulerStrategy` interface
+3.  The scheduler creates a `RouteBinding` for the  route and router if the route binding is
     successful
-4.  The `RouteAllocation` REST API applies the allocation to the `Route`, setting the `RouterDNS`
-    and `AllocationStatus` fields
-5.  The `Router` instance the `Route` is allocated to receives an update event for the route
+4.  The `RouteBinding` REST API applies the route binding to the `Route`'s status field, setting the
+    `DNS` and `Phase` fields
+5.  The `Router` instance the `Route` is scheduled to receives an update event for the route
     and applies it to the router backend configuration
 
-Errors allocating routes are assumed to be transient and actionable by administrators.  The
-allocator will continue reprocessing a `Route` until allocation succeeds.
+Errors scheduling routes are assumed to be transient and actionable by administrators.  The
+scheduling will continue reprocessing a `Route` until route binding succeeds.
 
-#### The `RouteAllocationStrategy` interface
+#### The `RouteSchedulerStrategy` interface
 
-The `RouteAllocationStrategy` expresses something that can allocate routes amongst the available
+The `RouteSchedulerStrategy` expresses something that can allocate routes amongst the available
 routers:
 
-    type RouteAllocationStrategy interface {
-        func AllocateRoute(*routeapi.Route) (*routerapi.Router, error)
+    type RouteSchedulerStrategy interface {
+        func Schedule(*routeapi.Route) (*routerapi.Router, error)
     }
 
 ## User Requests a Route
@@ -143,8 +153,8 @@ when requesting default dns we should take the name, allocate it, and provide th
 
 OPEN QUESTION: do we intend on hosting DNS for the Online use case?
 
-1. NO: users map their domain to resolve our router ip(s).  Must be done after allocation.  User is responsible for balancing requests between routers?
-2. YES: users configure their domain to point to our nameservers for resolution.  Can be done before allocation (nameserver IPs are known).  Allows us to add
+1. NO: users map their domain to resolve our router ip(s).  Must be done after route binding.  User is responsible for balancing requests between routers?
+2. YES: users configure their domain to point to our nameservers for resolution.  Can be done before route binding (nameserver IPs are known).  Allows us to add
 routers to shards and have them picked up by DNS RR.  For custom DNS we make a CNAME that points to the wildcard shard entry
 3. BOTH: we are still dealing with DNS cache issues
 
@@ -159,7 +169,7 @@ modified with an indicator that the DNS name is user owned or system controlled.
 
 1.  System supplied DNS: this indicates that the user *DOES NOT* own the domain name and is requesting that OpenShift 
 supply it.  The user provides a `Host` that is used as a prefix to the final DNS name which is determined based on the router 
-allocation and takes the form of: `<namespace>-<Host>.<shard>.v3.rhcloud.com.
+route binding and takes the form of: `<namespace>-<Host>.<shard>.v3.rhcloud.com.
 
 1.  User supplied DNS: this indicates that the user currently owns a domain name and will be able to configure their 
 registrar to indicate that OpenShift's DNS servers will provide DNS look ups for the domain.  When a user controlled DNS 
