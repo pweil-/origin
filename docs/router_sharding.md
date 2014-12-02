@@ -34,7 +34,7 @@ The following use cases should be satisfied by this proposal:
 
 Administering routers as a top level object allows administrators to use custom commands specific
 to routers.  This provides a more use friendly mechanism of configuration and customizing routers.
-However, this also introduces more code for  an object that will likely be dealt with as a pod
+However, this also introduces more code for an object that will likely be dealt with as a pod
 anyway.  Routers should be a low touch configuration item that do not require many custom commands
 for daily administration.
 
@@ -56,36 +56,11 @@ Cons:
 
 #### The `Router` Resource
 
-There should be a new OpenShift resource called `Router`.  Its fields should include:
+There should be a new OpenShift resource called `Router`.  Its fields include:
 
-1.  Backend: the `RouterBackend` configuration for this router
-2.  Label: the label that associates resources (Endpoints, Routes, Services) with this router
-3.  HA: whether this router should be run in HA mode
-
-The `RouterBackend` type will specify the backend configuration for a `Router` record: which
-backend type to use and any options for each possible type:
-
-    type RouterBackend struct {
-    	Type RouterBackendType
-    	HAProxyParams *HAProxyBackendParams
-    	CustomParams  *CustomBackendParams
-    }
-
-    type RouterBackendType string
-
-    const (
-        RouterBackendHAProxy RouterBackendType = "haproxy"
-        RouterBackendNginx   RouterBackendType = "nginx"
-        RouterBackendCustom  RouterBackendType = "custom"
-    )
-
-The custom type allows a user to specify an arbitrary pod template for the router.
-
-#### The Router Subsystem State Reconciler
-
-The OpenShift system needs a new state reconciler to ensure that the configured routers are
-always running.  This will be a new controller called `RouterSubsystemController` that will watch
-the `Router` resource and handle running pods to realize the specified configuration.
+1.  `Name`: the router's name
+2.  `Description`: a description of the Router
+3.  `Label`: the label that associates resources (Endpoints, Routes, Services) with this router
 
 ## Route Allocation
 
@@ -96,30 +71,70 @@ and a new field to express allocation status in the `Route` resource.
 
 ### Proposed Implementation
 
-#### `Route` resource changes
+#### Changes to the `Route` resource
 
 The `Route` resource should have a new field added:
 
     type Route {
-    	// other fields not shown
-    	Status RouteAllocationStatus
+        // other fields not shown
+        RouterURL        string
+        AllocationStatus RouteAllocationStatus
     }
 
 The `RouteAllocationStatus` type represents the allocation status of a route; it can be valued
 `new` or `allocated`.
 
-#### Route Allocator
+#### Changes to the `Route` REST API
+
+The `Route` REST API will be changed to validate that:
+
+1.  The `RouterURL` and `AllocationStatus` fields of a `Route` are not set during create
+2.  The value of `RouterURL` and `AllocationStatus` fields do not change during update
+
+#### The `RouteAllocation` Resource
+
+The `RouteAllocation` resource describes the association of a `Route` with a `Router`.  Its fields
+are:
+
+1.  `RouteNamespace`: The namespace of the route being allocated
+2.  `RouteName`: The name of the route being allocated
+3.  `RouterNamespace`: The namespace of the router serving the route
+4.  `RouterName`: The name of the router serving the route
+
+The `RouteAllocation` REST API will be the only path that is allowed to update the values of the
+`RouterURL` and `AllocationStatus` fields.  The REST API will apply the allocation to the `Route`
+record during `Create`.
+
+#### The `RouteAllocator` state reconciler
 
 We will introduce `RouteAllocator`, a state reconciler that watches the `Route` resource and
 allocates new routes.  The allocator will use a pluggable allocation strategy, allowing users to
 author their own strategies.  Our initial strategy implementation will be a simple round-robin
 strategy.
 
-The `RouteAllocator`'s will process `Route` resource events as follows:
+The `RouteAllocator` processes `Route` resources as follows:
 
-1.  The `RouteAllocator` will periodically list the unallocated `Route`s.
-2.  Each unallocated `Route` record is passed to the `RouteAllocator` interface for allocation
-3.  If the route is successfully allocated, the Route status is updated to `allocated`
+1.  The `RouteAllocator` will watch for newly created (and thus unallocated) `Route`s and
+    periodically list the unallocated `Route`s to retry
+2.  The allocator passes unallocated `Route` records to the `RouteAllocationStrategy` interface
+3.  The allocator creates a `RouteAllocation` for the  route and router if the allocation is
+    successful
+4.  The `RouteAllocation` REST API applies the allocation to the `Route`, setting the `RouterURL`
+    field
+5.  The `Router` instance the `Route` is allocated to will receive an update event for the route
+    and apply it to the router backend configuration
+
+Errors allocating routes are assumed to be transient and actionable by administrators.  The
+allocator will continue reprocessing a `Route` until allocation succeeds.
+
+#### The `RouteAllocationStrategy` interface
+
+The `RouteAllocationStrategy` expresses something that can allocate routes amongst the available
+routers:
+
+    type RouteAllocationStrategy interface {
+        func AllocateRoute(*routeapi.Route) (*routerapi.Router, error)
+    }
 
 ## User Requests a Route
 
