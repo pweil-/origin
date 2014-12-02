@@ -99,6 +99,11 @@ The `Route` REST API will be changed to validate that:
 
 1.  The `DNS` and `Phase` fields of a `Route` are not set during create
 2.  The value of `DNS` and `Phase` fields do not change during update
+3.  The `RouteDNS` represents the final DNS name that will be used for the requested route.  For example
+if the user requests the route `test` for their app in namespace `myapp` they will be allocted to a shard 
+and given a name in the form of `myapp-test.shard1.v3.rhcloud.com`.  This field may only change during
+router allocation or reallocation and is only changed by the system.  If the user owns their own
+domain then this field will be populated from `Route.Host` and remain unchanged during allocation.
 
 #### The `RouteBinding` Resource
 
@@ -146,16 +151,40 @@ routers:
 
 ## User Requests a Route
 
-when they have their own dns name then need to point it to our nameservers, map their dns to a shard name with a c record?
-when requesting default dns we should take the name, allocate it, and provide then a final dns name?
+Requesting a route is a multi-step process that includes the initial user request, router allocation, router configuration 
+and (optionally) DNS configuration.  If OpenShift will be providing DNS services then a DNS state
+field (not shown here) would be included and updated during the DNS steps.  Otherwise, users who own their own domain
+should point their domain name to the allocated shard(s) for resolution.
+
+**System provided domain**
+
+| Step | Route State | RouterDNS | Route Host |
+|------|-------------|-----------|------------|
+| User requests route | new | (empty) | (empty) |
+| System allocates route | allocated | `<shard>.v3.rhcloud.com` | `<namespace>-<Host>.<shard>.v3.rhcloud.com` |
+| Router plugin writes config | complete | `<shard>.v3.rhcloud.com` | `<namespace>-<Host>.<shard>.v3.rhcloud.com` |
+| DNS handled by wild cards, no config necessary | complete | `<shard>.v3.rhcloud.com` | `<namespace>-<Host>.<shard>.v3.rhcloud.com` |
+
+
+**User provided domain**
+
+| Step | Route State | RouterDNS | Route Host |
+|------|-------------|-----------|------------|
+| User requests route | new | (empty) | (empty) |
+| System allocates route | allocated | `<shard>.v3.rhcloud.com` | system populated from `Route.Host` |
+| Router plugin writes config | complete | `<shard>.v3.rhcloud.com` | system populated from `Route.Host` |
+| (optional) DNS plugin writes CNAME that points to shard | complete | `<shard>.v3.rhcloud.com` | system populated from `Route.Host` |
+
 
 ## DNS
 
 OPEN QUESTION: do we intend on hosting DNS for the Online use case?
 
-1. NO: users map their domain to resolve our router ip(s).  Must be done after route binding.  User is responsible for balancing requests between routers?
-2. YES: users configure their domain to point to our nameservers for resolution.  Can be done before route binding (nameserver IPs are known).  Allows us to add
-routers to shards and have them picked up by DNS RR.  For custom DNS we make a CNAME that points to the wildcard shard entry
+1. NO: users map their domain to resolve our router ip(s).  Must be done after allocation.  User is responsible for balancing requests between routers?
+2. YES: users configure their domain to point to our nameservers for resolution.  Can be done before allocation (nameserver IPs are known).  Allows us to add
+routers to shards and have them picked up by DNS RR.  For custom DNS we make a CNAME that points to the wildcard shard entry.
+Using a CNAME would also make it possible to point `<namespace>-<Host>.v3.rhcloud.com` to `<namespace>-<Host>.<shard>.v3.rhcloud.com` but 
+does require more maintenance burden since there is more configuration to manage.
 3. BOTH: we are still dealing with DNS cache issues
 
 In order to facilitate supplying external DNS for applications in the OpenShift system the router configuration will be 
@@ -169,7 +198,7 @@ modified with an indicator that the DNS name is user owned or system controlled.
 
 1.  System supplied DNS: this indicates that the user *DOES NOT* own the domain name and is requesting that OpenShift 
 supply it.  The user provides a `Host` that is used as a prefix to the final DNS name which is determined based on the router 
-route binding and takes the form of: `<namespace>-<Host>.<shard>.v3.rhcloud.com.
+allocation and takes the form of: `<namespace>-<Host>.<shard>.v3.rhcloud.com`.
 
 1.  User supplied DNS: this indicates that the user currently owns a domain name and will be able to configure their 
 registrar to indicate that OpenShift's DNS servers will provide DNS look ups for the domain.  When a user controlled DNS 
