@@ -52,16 +52,6 @@ Cons:
 - More divergent from Kubernetes codebase initially, though we may be able to generalize parts of
   this approach to sharding to other resources and controllers which allow sharding
 
-### Proposed Implementation
-
-#### The `Router` Resource
-
-There should be a new OpenShift resource called `Router`.  Its fields include:
-
-1.  `Name`: the router's name
-2.  `Description`: a description of the Router
-3.  `Label`: the label that associates resources (Endpoints, Routes, Services) with this router
-
 ## Route Allocation
 
 Route allocation is the process of assigning a `Route` record to a specific `Router` and setting up
@@ -71,13 +61,22 @@ and a new field to express allocation status in the `Route` resource.
 
 ### Proposed Implementation
 
+#### The `Router` Resource
+
+There should be a new OpenShift resource called `Router`.  Its fields include:
+
+1.  `Name`: the router's name
+2.  `Description`: a description of the Router
+3.  `DNS`: the public DNS name of the Router
+3.  `Label`: the label that associates resources (Endpoints, Routes, Services) with this router
+
 #### Changes to the `Route` resource
 
 The `Route` resource should have a new field added:
 
     type Route {
         // other fields not shown
-        RouterURL        string
+        RouterDNS        string
         AllocationStatus RouteAllocationStatus
     }
 
@@ -88,8 +87,8 @@ The `RouteAllocationStatus` type represents the allocation status of a route; it
 
 The `Route` REST API will be changed to validate that:
 
-1.  The `RouterURL` and `AllocationStatus` fields of a `Route` are not set during create
-2.  The value of `RouterURL` and `AllocationStatus` fields do not change during update
+1.  The `RouterDNS` and `AllocationStatus` fields of a `Route` are not set during create
+2.  The value of `RouterDNS` and `AllocationStatus` fields do not change during update
 
 #### The `RouteAllocation` Resource
 
@@ -98,11 +97,10 @@ are:
 
 1.  `RouteNamespace`: The namespace of the route being allocated
 2.  `RouteName`: The name of the route being allocated
-3.  `RouterNamespace`: The namespace of the router serving the route
-4.  `RouterName`: The name of the router serving the route
+3.  `RouterDNS`: The DNS of the router serving the route
 
 The `RouteAllocation` REST API will be the only path that is allowed to update the values of the
-`RouterURL` and `AllocationStatus` fields.  The REST API will apply the allocation to the `Route`
+`RouterDNS` and `AllocationStatus` fields.  The REST API will apply the allocation to the `Route`
 record during `Create`.
 
 #### The `RouteAllocator` state reconciler
@@ -114,15 +112,15 @@ strategy.
 
 The `RouteAllocator` processes `Route` resources as follows:
 
-1.  The `RouteAllocator` will watch for newly created (and thus unallocated) `Route`s and
+1.  The `RouteAllocator` watches for newly created (and thus unallocated) `Route`s and
     periodically list the unallocated `Route`s to retry
 2.  The allocator passes unallocated `Route` records to the `RouteAllocationStrategy` interface
 3.  The allocator creates a `RouteAllocation` for the  route and router if the allocation is
     successful
-4.  The `RouteAllocation` REST API applies the allocation to the `Route`, setting the `RouterURL`
-    field
-5.  The `Router` instance the `Route` is allocated to will receive an update event for the route
-    and apply it to the router backend configuration
+4.  The `RouteAllocation` REST API applies the allocation to the `Route`, setting the `RouterDNS`
+    and `AllocationStatus` fields
+5.  The `Router` instance the `Route` is allocated to receives an update event for the route
+    and applies it to the router backend configuration
 
 Errors allocating routes are assumed to be transient and actionable by administrators.  The
 allocator will continue reprocessing a `Route` until allocation succeeds.
