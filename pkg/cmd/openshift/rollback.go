@@ -47,14 +47,32 @@ func rollback(cfg *config, args []string) error {
 		return err
 	}
 
-	//read the file - will be handled by the api in the future
+	/*
+		This is a mock up of the minimal viable product for rollbacks.  It is NOT a complete solution.
+
+		A rollback is essentially a posting of an old deployment config on top of the current config.  However,
+		the user will indicate which version of the deployment config they'd like to use by specifying a deployment
+		from 'list deployments' or whatever the replication controller version evolves into.
+
+		To demonstrate the mechanics the code below mocks what an actual api call would do.  In an actual solution
+		I envision that it would be something like:
+
+		1. user posts to rollback endpoint with .json containing config parameters or with GET params
+		2. endpoint uses parameters to call DeploymentConfigRollbackGenerator.Generate(deploymentId) and receives
+			a new deployment config back that is based on the old deployment
+		3. endpoint performs validation
+		4. endpoint calls DeploymentConfig.Update(newConfig)
+	 */
+
+	//1. user posts to rollback endpoint with .json containing config parameters or with GET params - currently bootstrapped on top of the DeploymentConfig
 	glog.V(4).Infof("Reading rollback config")
 	rollbackConfig, err := ReadRollbackFile(cfg.RollbackConfigName)
 	if err != nil {
 		return err
 	}
 
-	//get the current config - existing api call
+	//2. endpoint uses parameters to call DeploymentConfigRollbackGenerator.Generate(deploymentId) and receives
+	//   a new deployment config back that is based on the old deployment
 	glog.V(4).Infof("Finding current deploy config named %s", rollbackConfig.ObjectMeta.Name)
 	currentConfig, err := osClient.DeploymentConfigs("").Get(rollbackConfig.ObjectMeta.Name)
 	if err != nil {
@@ -62,17 +80,16 @@ func rollback(cfg *config, args []string) error {
 	}
 
 
-	//get the old config - existing api call
 	glog.V(4).Infof("Finding rollback deployment with name %s", rollbackConfig.Rollback.To)
 	oldConfig, err := osClient.Deployments("").Get(rollbackConfig.Rollback.To)
 	if err != nil {
 		return err
 	}
 
-	//replace current template with old - new rollback functionality
 	currentConfig.Template.ControllerTemplate = oldConfig.ControllerTemplate
 
-	//submit - existing api call
+	//3. endpoint performs validation (todo)
+	//4. endpoint calls DeploymentConfig.Update(newConfig)
 	osClient.DeploymentConfigs("").Update(currentConfig)
 
 	glog.Info("-------------------  Rollback Complete  ----------------------")
