@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+
+	routeapi "github.com/openshift/origin/pkg/route/api"
 )
 
 const (
@@ -19,13 +21,8 @@ const (
 )
 
 const (
-	TermEdge  = "TERM_EDGE"
-	TermGear  = "TERM_GEAR"
-	TermRessl = "TERM_RESSL"
-)
-
-const (
 	RouteFile = "/var/lib/containers/router/routes.json"
+	CertDir   = "/var/lib/haproxy/conf/certs/"
 )
 
 // templateRouter is a backend-agnostic router implementation
@@ -92,6 +89,18 @@ func (r *templateRouter) writeState() error {
 
 // writeConfig processes the templates and writes config files.
 func (r *templateRouter) writeConfig() error {
+	//write out any certificate files that don't exist
+	//todo: better way so this doesn't need to create lots of files every time state is written, probably too expensive
+	for _, fe := range r.state {
+		for _, be := range fe.Backends {
+			for _, cert := range be.Certificates{
+				if err := writeCert(cert); err != nil {
+					return err
+				}
+			}
+		}
+	}
+
 	for path, template := range r.templates {
 		file, err := os.Create(path)
 		if err != nil {
@@ -106,6 +115,29 @@ func (r *templateRouter) writeConfig() error {
 		}
 
 		file.Close()
+	}
+
+	return nil
+}
+
+func writeCert(cert Certificate) error{
+	dat := cert.Contents
+	//todo unique id for certs
+	fileName := CertDir + "testIt.pem"
+	err := ioutil.WriteFile(fileName, dat, 0644)
+
+	if err != nil {
+		glog.Errorf("Error writing certificate file %v: %v", fileName, err)
+		return err
+	}
+
+	dat = cert.PrivateKey
+	fileName = CertDir + "testIt.key"
+	err = ioutil.WriteFile(fileName, dat, 0644)
+
+	if err != nil {
+		glog.Errorf("Error writing key file %v: %v", fileName, err)
+		return err
 	}
 
 	return nil
@@ -172,6 +204,44 @@ func (r *templateRouter) AddAlias(id, alias string) {
 	r.state[id] = frontend
 }
 
+func (r *templateRouter) SecureRoute(id string, route *routeapi.Route) {
+	if &route.TLS != nil {
+		//get the frontend for the route
+		fe := r.state[id]
+
+		//find the matching backend (check for the path or take the empty one)
+		for idx, be := range fe.Backends {
+
+			if be.FePath == route.Path {
+				be.TLSTermination = route.TLS.Termination
+
+				//TODO use ids to identify fe cert, re-encrypt cert, and ca cert
+				cert := Certificate{
+					Contents: []byte(route.TLS.Certificate),
+					PrivateKey: []byte(route.TLS.Key),
+					PrivateKeyPassword: route.TLS.KeyPassPhrase,
+				}
+
+				be.Certificates = append(be.Certificates, cert)
+
+				if len(route.TLS.CACertificate) > 0 {
+					caCert := Certificate {
+						Contents: []byte(route.TLS.CACertificate),
+					}
+
+					be.Certificates = append(be.Certificates, caCert)
+				}
+				//todo: re-encrypt certs
+				r.state[id].Backends[idx] = be
+				return
+			}
+		}
+
+		//If we got here it means we tried securing a route that didn't have a matching backend
+		glog.Warningf("Tried to secure route %s but couldn't find matching backend with path %s", id, route.Path)
+	}
+}
+
 // RemoveAlias removes the given alias for the given id.
 func (r *templateRouter) RemoveAlias(id, alias string) {
 	frontend := r.state[id]
@@ -231,7 +301,13 @@ func (r *templateRouter) AddRoute(id string, back *Backend, endpoints []Endpoint
 	// create a new backend if none was found.
 	if !found {
 		backendID := makeID()
-		frontend.Backends[backendID] = Backend{backendID, back.FePath, back.BePath, back.Protocols, newEndpoints, TermEdge, nil}
+		frontend.Backends[backendID] = Backend{backendID,
+			back.FePath,
+			back.BePath,
+			back.Protocols,
+			newEndpoints,
+			routeapi.TLSTerminationEdge,
+			nil}
 	}
 
 	r.state[id] = frontend

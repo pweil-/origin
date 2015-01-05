@@ -35,6 +35,8 @@ type router interface {
 	RemoveAlias(id, alias string)
 	// AddRoute adds new Endpoints for the given id.
 	AddRoute(id string, backend *Backend, endpoints []Endpoint)
+	// Add security to a route by finding a matching backend using the route path
+	SecureRoute(id string, route *routeapi.Route)
 
 	// Commit refreshes the backend and persists the router state.
 	Commit() error
@@ -103,6 +105,7 @@ func (p *TemplatePlugin) HandleRoute(eventType watch.EventType, route *routeapi.
 	case watch.Added, watch.Modified:
 		glog.V(4).Infof("Modifying routes for %s", key)
 		p.Router.AddAlias(key, route.Host)
+		p.Router.SecureRoute(key, route)
 	case watch.Deleted:
 		glog.V(4).Infof("Deleting routes for %s", key)
 		p.Router.RemoveAlias(key, route.Host)

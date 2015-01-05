@@ -144,7 +144,93 @@ route.json
       "host": "hello-openshift.v3.rhcloud.com",
       "serviceName": "hello-openshift"
     }
+
+## SSL Certificates
+
+Create a secure connection to your pods with custom SSL certificates can be done by configuring the route with certificate 
+information and, optionally, termination information.
+
+SSL Termination dictates how far the encrypted traffic flows through the routing layer and ultimately to your pods.  There 
+are three options:
+
+1.  Edge termination - SSL requests will be decrypted by the edge router and unencrypted traffic will flow to the pods
+1.  Pod termination - The edge router will setup up your route as a tcp with SNI route.  The pod will be responsible for 
+decrypting the traffic
+1.  Edge termination with re-encryption - In this mode the edge router decrypts the request and re-encrypts it with another 
+certificate.  The pod will be responsible for final decryption of the traffic.
+
+Proposal: (Will be removed from this document and the document will be updated with an example of configuring the route)
     
+#####Route Changes
+ 
+Add SSL and termination information to the route:
+
+      type Route struct {
+         	kapi.TypeMeta   `json:",inline" yaml:",inline"`
+         	kapi.ObjectMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
+         
+         	// Required: Alias/DNS that points to the service
+         	// Can be host or host:port
+         	// host and port are combined to follow the net/url URL struct
+         	Host string `json:"host" yaml:"host"`
+         	// Optional: Path that the router watches for, to route traffic for to the service
+         	Path string `json:"path,omitempty" yaml:"path,omitempty"`
+         
+         	// the name of the service that this route points to
+         	ServiceName string `json:"serviceName" yaml:"serviceName"`
+         	
+         	//SSL provides the ability to configure certificates for the route
+         	TLS TLSConfig `json:"ssl,omitempty" yaml:"ssl,omitempty"`
+      }
+      
+      type TLSConfig struct {
+            //The termination type, if empty default will be edge
+            Termination TLSTerminationType `json:"terminate,omitempty" yaml:"terminate,omitempty"`
+            
+            //if using reencrypt termination type then allow a second cert to be provided, termination
+            //config on this cert will be ignored
+            TerminationConfig *TLSLConfig  
+            
+            //used during Route configuration to specify the file to upload.  Required for edge termination
+            CertificateFile string `json:"certificateFile,omitempty" yaml:"certificateFile,omitempty"`
+            
+            //used during Route configuration to specify the file to upload.  Required for edge termination
+            KeyFile string `json:"keyFile,omitempty" yaml:"keyFile,omitempty"`
+            
+            //password for the keyfile
+            KeyPassPhrase string `json:"keyPassPhrase,omitempty" yaml:"keyPassPhrase,omitempty"`
+              
+            //used during Route configuration to specify the file to upload.  If not specified
+            //then it is assumed that the CA chain is concatenated in the certificate file.  If this file is specified
+            //it will be added to the end of CertificateFile before parsing
+            CACertificateFile string `json:"caCertificateFile,omitempty" yaml:"caCertificateFile,omitempty"`                                                                                            
+            
+            //Internal representation of the certificate after it is parsed for storage.  See http://golang.org/pkg/crypto/tls/#Certificate
+            certificate tls.Certificate                                                                             
+      }
+      
+      type TLSTerminationType string
+      
+      const (
+          Edge      TLSTerminationType = "edge"
+          Pod       TLSTerminationType = "pod"
+          Reencrypt TLSTerminationType = "reencrypt"
+      )
+    
+Update the route definition to call `tls.Certificate.LoadX509KeyPair` and save the value in `Route.Certificate`
+      
+#####Router Changes
+      
+1. The storage for certificates will be in the registry for the router.  
+1. Update the router to check for secure routes
+     1. edge termination = certificate is stored on the router layer, traffic is decrypted and sent unencrypted to the pod
+     1. pod termination = no certificate required, route set up as TCP with SNI as a passthrough. HAProxy implementation will include
+    checks for `req.ssl_sni` to match on the host for the route backend and a frontend that accepts requests if `req_ssl_hello_type=1` 
+     1. Reencrypt = cert and secondary cert required, initial traffic is decrypted and then sent as encrypted traffic with the secondary cert.
+    HAProxy implementation will include a ca-file directive on the backend to re-encrypt traffic 
+1. Update the router to store the certificates on a configured disk (passed at runtime) so that it can take advantage of 
+persistent disk proposals in the future.  It may also include secure channels for referenced secrets in the future.
+
 ## Running HA Routers
 
 Highly available router setups can be accomplished by running multiple instances of the router pod and fronting them with

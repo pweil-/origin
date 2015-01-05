@@ -1,5 +1,9 @@
 package templaterouter
 
+import (
+	routeapi "github.com/openshift/origin/pkg/route/api"
+)
+
 type Frontend struct {
 	Name          string
 	HostAliases   []string
@@ -13,7 +17,7 @@ type Backend struct {
 	BePath       string
 	Protocols    []string
 	EndpointIDs  []string
-	SslTerm      string
+	TLSTermination routeapi.TLSTerminationType
 	Certificates []Certificate
 }
 

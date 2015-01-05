@@ -34,17 +34,43 @@ frontend public
   use_backend be_%[hdr(host),map(/var/lib/haproxy/conf/host_be.map)] if TRUE
   default_backend openshift_default
 
+# public ssl accepts all connections and isn't checking certificates yet
+# certificates to use will be determined by the backend
 frontend public_ssl
   bind :443
   mode tcp
   tcp-request  inspect-delay 5s
   tcp-request content accept if { req_ssl_hello_type 1 }
-  use_backend be_sni_%[hdr(host),map(/var/lib/haproxy/conf/host_be_sni.map)] if { ssl_fc_has_sni }
+  use_backend be_sni if { ssl_fc_has_sni }
   default_backend be_no_sni
 
 ##------------- helper frontends/backends to dissect ssl/sni ----
-#TODO : handle wss
+##########################################################################
+# TLS SNI
+##########################################################################
+backend be_sni
+  mode tcp
+  server fe_sni 127.0.0.1:10444 weight 1 send-proxy
 
+frontend fe_sni
+  # terminate ssl on edge
+  bind 127.0.0.1:10444 ssl crt /var/lib/haproxy/conf/certs accept-proxy
+
+  # re-ssl?
+  use_backend be_ressl_%[hdr(host),map(/var/lib/haproxy/conf/host_be_ressl.map)] if TRUE
+
+  # regular http
+  use_backend be_%[hdr(host),map(/var/lib/haproxy/conf/host_be.map)] if TRUE
+
+  default_backend openshift_default
+
+##########################################################################
+# END TLS SNI
+##########################################################################
+
+##########################################################################
+# TLS NO SNI
+##########################################################################
 frontend fe_no_sni
   # terminate ssl on edge
   bind 127.0.0.1:10443 ssl crt /var/lib/haproxy/conf/default_pub_keys.pem accept-proxy
@@ -61,6 +87,10 @@ frontend fe_no_sni
 backend be_no_sni
   mode tcp
   server fe_no_sni 127.0.0.1:10443 weight 1 send-proxy
+
+##########################################################################
+# END TLS NO SNI
+##########################################################################
 
 backend openshift_default
   mode http
