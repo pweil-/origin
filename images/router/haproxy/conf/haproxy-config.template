@@ -57,7 +57,7 @@ frontend fe_sni
   bind 127.0.0.1:10444 ssl crt /var/lib/haproxy/conf/certs accept-proxy
 
   # re-ssl?
-  use_backend be_ressl_%[hdr(host),map(/var/lib/haproxy/conf/host_be_ressl.map)] if TRUE
+  # use_backend be_ressl_%[hdr(host),map(/var/lib/haproxy/conf/host_be_ressl.map)] if TRUE
 
   # regular http
   use_backend be_%[hdr(host),map(/var/lib/haproxy/conf/host_be.map)] if TRUE
