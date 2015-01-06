@@ -63,8 +63,10 @@ backend be_sni
   server fe_sni 127.0.0.1:10444 weight 1 send-proxy
 
 frontend fe_sni
+  # check passthrough settings
+
   # terminate ssl on edge
-  bind 127.0.0.1:10444 ssl crt /var/lib/haproxy/conf/certs accept-proxy
+  bind 127.0.0.1:10444 ssl crt /var/lib/containers/router/certs accept-proxy
 
   # re-ssl?
   # use_backend be_ressl_%[hdr(host),map(/var/lib/haproxy/conf/host_be_ressl.map)] if TRUE

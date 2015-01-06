@@ -35,7 +35,7 @@ type router interface {
 	RemoveAlias(id, alias string)
 	// AddRoute adds new Endpoints for the given id.
 	AddRoute(id string, backend *Backend, endpoints []Endpoint)
-	// Add security to a route by finding a matching backend using the route path
+	// Add certificate info and termination info to a route by finding a matching backend using the route path
 	SecureRoute(id string, route *routeapi.Route)
 
 	// Commit refreshes the backend and persists the router state.

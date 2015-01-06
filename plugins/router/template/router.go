@@ -22,7 +22,7 @@ const (
 
 const (
 	RouteFile = "/var/lib/containers/router/routes.json"
-	CertDir   = "/var/lib/haproxy/conf/certs/"
+	CertDir   = "/var/lib/containers/router/certs/"
 )
 
 // templateRouter is a backend-agnostic router implementation
@@ -32,10 +32,11 @@ type templateRouter struct {
 	templates        map[string]*template.Template
 	reloadScriptPath string
 	state            map[string]Frontend
+	certManager		 certManager
 }
 
 func newTemplateRouter(templates map[string]*template.Template, reloadScriptPath string) (*templateRouter, error) {
-	router := &templateRouter{templates, reloadScriptPath, map[string]Frontend{}}
+	router := &templateRouter{templates, reloadScriptPath, map[string]Frontend{}, certManager{}}
 	err := router.readState()
 	return router, err
 }
@@ -93,11 +94,7 @@ func (r *templateRouter) writeConfig() error {
 	//todo: better way so this doesn't need to create lots of files every time state is written, probably too expensive
 	for _, fe := range r.state {
 		for _, be := range fe.Backends {
-			for _, cert := range be.Certificates{
-				if err := writeCert(cert); err != nil {
-					return err
-				}
-			}
+			r.certManager.writeCertificatesForBackend(&be)
 		}
 	}
 
@@ -120,28 +117,6 @@ func (r *templateRouter) writeConfig() error {
 	return nil
 }
 
-func writeCert(cert Certificate) error{
-	dat := cert.Contents
-	//todo unique id for certs
-	fileName := CertDir + "testIt.pem"
-	err := ioutil.WriteFile(fileName, dat, 0644)
-
-	if err != nil {
-		glog.Errorf("Error writing certificate file %v: %v", fileName, err)
-		return err
-	}
-
-	dat = cert.PrivateKey
-	fileName = CertDir + "testIt.key"
-	err = ioutil.WriteFile(fileName, dat, 0644)
-
-	if err != nil {
-		glog.Errorf("Error writing key file %v: %v", fileName, err)
-		return err
-	}
-
-	return nil
-}
 
 // reloadRouter executes the router's reload script.
 func (r *templateRouter) reloadRouter() error {
@@ -213,23 +188,26 @@ func (r *templateRouter) SecureRoute(id string, route *routeapi.Route) {
 		for idx, be := range fe.Backends {
 
 			if be.FePath == route.Path {
+				if be.Certificates == nil {
+					be.Certificates = make(map[string]Certificate)
+				}
+
 				be.TLSTermination = route.TLS.Termination
 
-				//TODO use ids to identify fe cert, re-encrypt cert, and ca cert
 				cert := Certificate{
 					Contents: []byte(route.TLS.Certificate),
 					PrivateKey: []byte(route.TLS.Key),
 					PrivateKeyPassword: route.TLS.KeyPassPhrase,
 				}
 
-				be.Certificates = append(be.Certificates, cert)
+				be.Certificates[route.Host] = cert
 
 				if len(route.TLS.CACertificate) > 0 {
 					caCert := Certificate {
 						Contents: []byte(route.TLS.CACertificate),
 					}
 
-					be.Certificates = append(be.Certificates, caCert)
+					be.Certificates[route.Host + "_ca"] = caCert
 				}
 				//todo: re-encrypt certs
 				r.state[id].Backends[idx] = be

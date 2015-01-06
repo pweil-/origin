@@ -18,7 +18,7 @@ type Backend struct {
 	Protocols    []string
 	EndpointIDs  []string
 	TLSTermination routeapi.TLSTerminationType
-	Certificates []Certificate
+	Certificates map[string]Certificate
 }
 
 type Certificate struct {
