@@ -14,7 +14,7 @@ RUN yum install -y gcc make openssl-devel pcre-devel tar wget socat && \
     cd haproxy-ss-* && make TARGET=linux2628 CPU=native USE_PCRE=1 USE_OPENSSL=1 USE_ZLIB=1 && make install && \
     cd .. && rm -rf haproxy-ss-* && \
     mkdir -p /usr/bin && \
-    mkdir -p /var/lib/containers/router/ && \
+    mkdir -p /var/lib/containers/router/certs/ && \
     mkdir -p /var/lib/haproxy/{conf,run,bin,log} && \
     touch /var/lib/haproxy/conf/{host_be.map,host_be_ws.map,host_be_ressl.map,host_be_sni.map,haproxy.config} && \
     yum -y remove gcc && \
