@@ -41,12 +41,22 @@ frontend public_ssl
   mode tcp
   tcp-request  inspect-delay 5s
   tcp-request content accept if { req_ssl_hello_type 1 }
-  use_backend be_sni if { ssl_fc_has_sni }
+  use_backend be_sni if { req.ssl_sni }
   default_backend be_no_sni
 
-##------------- helper frontends/backends to dissect ssl/sni ----
 ##########################################################################
 # TLS SNI
+#
+# First check to see if this SNI route is configured as a passthrough, if so then
+# simply pass it along.
+#
+# If not a passthrough, when using SNI we can terminate encryption with custom certificates.
+# Certs will be stored in a directory and will be matched with the SNI host header
+# which must exist in the CN of the certificate.  Certificates must be concatenated
+# as a single file (handled by the plugin writer) per the haproxy documentation.
+#
+# Finally, check re-encryption settings and re-encrypt or just pass along the unencrypted
+# traffic
 ##########################################################################
 backend be_sni
   mode tcp
@@ -70,6 +80,10 @@ frontend fe_sni
 
 ##########################################################################
 # TLS NO SNI
+#
+# When we don't have sni the only thing we can try to do is terminate the encryption
+# using our wild card certificate.  Once that is complete we can either re-encrypt
+# the traffic or pass it on to the backends
 ##########################################################################
 frontend fe_no_sni
   # terminate ssl on edge
