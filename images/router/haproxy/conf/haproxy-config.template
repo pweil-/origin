@@ -41,7 +41,7 @@ frontend public_ssl
   mode tcp
   tcp-request  inspect-delay 5s
   tcp-request content accept if { req_ssl_hello_type 1 }
-  use_backend be_sni if { req.ssl_sni }
+  use_backend be_sni if { req.ssl_sni -m found }
   default_backend be_no_sni
 
 ##########################################################################
