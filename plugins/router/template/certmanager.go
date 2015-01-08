@@ -7,11 +7,11 @@ import (
 
 type certManager struct {}
 
-func (cm *certManager) writeCertificatesForBackend(be *Backend) error {
-	if len(be.Certificates) > 0 {
-		for id, cert := range be.Certificates {
+func (cm *certManager) writeCertificatesForConfig(config *ServiceAliasConfig) error {
+	if len(config.Certificates) > 0 {
+		for id, cert := range config.Certificates {
 			if err := cm.writeCertificate(id, &cert); err != nil {
-				cm.deleteCertificatesForBackend(be)
+				cm.deleteCertificatesForConfig(config)
 				return err
 			}
 		}
@@ -38,7 +38,7 @@ func (cm *certManager) writeCertificate(id string, cert *Certificate) error {
 	return nil
 }
 
-func (cm *certManager) deleteCertificatesForBackend(be *Backend) error {
+func (cm *certManager) deleteCertificatesForConfig(config *ServiceAliasConfig) error {
 	return nil
 }
 
