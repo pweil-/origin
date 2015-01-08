@@ -13,6 +13,7 @@ import (
 
 	"github.com/openshift/origin/pkg/route/api"
 	"github.com/openshift/origin/pkg/route/api/validation"
+	"io/ioutil"
 )
 
 // REST is an implementation of RESTStorage for the api server.
@@ -78,6 +79,12 @@ func (rs *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.R
 
 	kapi.FillObjectMetaSystemFields(ctx, &route.ObjectMeta)
 
+	err := rs.loadCerts(route)
+
+	if err != nil {
+		return nil, errors.NewInvalid("route", route.Name, errors.ValidationErrorList{err})
+	}
+
 	return apiserver.MakeAsync(func() (runtime.Object, error) {
 		err := rs.registry.CreateRoute(ctx, route)
 		if err != nil {
@@ -103,6 +110,13 @@ func (rs *REST) Update(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.R
 	if errs := validation.ValidateRoute(route); len(errs) > 0 {
 		return nil, errors.NewInvalid("route", route.Name, errs)
 	}
+
+	err := rs.loadCerts(route)
+
+	if err != nil {
+		return nil, errors.NewInvalid("route", route.Name, errors.ValidationErrorList{err})
+	}
+
 	return apiserver.MakeAsync(func() (runtime.Object, error) {
 		err := rs.registry.UpdateRoute(ctx, route)
 		if err != nil {
@@ -116,4 +130,60 @@ func (rs *REST) Update(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.R
 // It implements apiserver.ResourceWatcher.
 func (rs *REST) Watch(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
 	return rs.registry.WatchRoutes(ctx, label, field, resourceVersion)
+}
+
+// Load and parse the certificate file(s) for the route
+func (rs *REST) loadCerts(route *api.Route) error {
+	if err := rs.loadCertsForTLS(&route.TLS); err != nil {
+		return err
+	}
+
+	if err := rs.loadCertsForTLS(route.TLS.TerminationConfig); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (rs *REST) loadCertsForTLS(c *api.TLSConfig) error {
+	//empty tls config, nothing to do
+	if c == nil {
+		return nil
+	}
+
+	if needsCert(c.CertificateFile, c.Certificate) {
+		cert, err := ioutil.ReadFile(c.CertificateFile)
+
+		if err != nil {
+			return err
+		}
+
+		c.Certificate = string(cert)
+	}
+
+	if needsCert(c.KeyFile, c.Key) {
+		key, err := ioutil.ReadFile(c.KeyFile)
+
+		if err != nil {
+			return err
+		}
+
+		c.Key = string(key)
+	}
+
+	if needsCert(c.CACertificateFile, c.CACertificate) {
+		caCert, err := ioutil.ReadFile(c.CACertificateFile)
+
+		if err != nil {
+			return err
+		}
+
+		c.CACertificate = string(caCert)
+	}
+
+	return nil
+}
+
+func needsCert(fileName, fileContents string) bool {
+	return len(fileName) > 0 && len(fileContents) == 0
 }
