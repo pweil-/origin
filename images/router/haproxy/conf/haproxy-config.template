@@ -80,7 +80,7 @@ frontend fe_sni
 
   # re-ssl?
   acl reencrypt hdr(host),map(/var/lib/haproxy/conf/os_reencrypt.map) -m found
-  use_backend be_secure_%[hdr(host),map(/var/lib/haproxy/conf/host_be_ressl.map)] if reencrypt
+  use_backend be_secure_%[hdr(host),map(/var/lib/haproxy/conf/os_http_be.map)] if reencrypt
 
   # regular http
   use_backend be_%[hdr(host),map(/var/lib/haproxy/conf/os_http_be.map)] if TRUE
@@ -128,45 +128,52 @@ backend openshift_default
   server openshift_backend 127.0.0.1:8080
 
 ##-------------- app level unencrypted backends ----------------
-
-{{   range $id, $serviceUnit := . }}
-backend be_http_{{$id}}
-  balance leastconn
-  timeout check 5000ms
-{{     range $endpointID, $endpoint := $serviceUnit.EndpointTable }}
-  server {{$id}} {{$endpoint.IP}}:{{$endpoint.Port}} check inter 5000ms
-{{     end }}
-{{   end }}
-
-{{   range $id, $serviceUnit := . }}
-backend be_tcp_{{$id}}
+{{/*
+    Create backends as follows:
+        1. if the config is terminated at the edge or termination is not set create a be_http_<service> backend,
+            traffic will be sent unencrypted to the pods
+        2. if the config is terminated at the pod create a be_tcp_<service> backend, we will use SNI to discover
+            where to send the traffic but should run the be in tcp mode
+        3. if the config is terminated at the
+*/}}
+{{ range $id, $serviceUnit := . }}
+        {{ range $cfgIdx, $cfg := $serviceUnit.ServiceAliasConfigs }}
+            {{ if eq $cfg.TLSTermination "edge" ||  eq $cfg.TLSTermination "" }}
+backend be_http_{$id}}
   mode http
   balance leastconn
   timeout check 5000ms
-{{     range $endpointID, $endpoint := $serviceUnit.EndpointTable }}
+                {{ range $endpointID, $endpoint := $serviceUnit.EndpointTable }}
   server {{$id}} {{$endpoint.IP}}:{{$endpoint.Port}} check inter 5000ms
-{{     end }}
-{{   end }}
+                {{ end }}
+            {{ end }}
 
-##-------------- app level secure backends ----------------
+            {{ if eq $cfg.TLSTermination "pod" }}
+backend be_tcp_{{$id}}
+  balance leastconn
+  timeout check 5000ms
+                {{ range $endpointID, $endpoint := $serviceUnit.EndpointTable }}
+  server {{$id}} {{$endpoint.IP}}:{{$endpoint.Port}} check inter 5000ms
+                {{ end }}
+            {{ end }}
 
-{{   range $id, $serviceUnit := . }}
-{{      range $cfgIdx, $cfg := $serviceUnit.ServiceAliasConfigs }}
-{{         if eq $cfg.TLSTermination "reencrypt" or eq $cfg.TLSTermination "pod" }}
+            {{ if eq $cfg.TLSTermination "reencrypt" or eq $cfg.TLSTermination "pod" }}
 backend be_secure_{{$id}}
   balance leastconn
   timeout check 5000ms
-{{            range $endpointID, $endpoint := $serviceUnit.EndpointTable }}
+                {{ range $endpointID, $endpoint := $serviceUnit.EndpointTable }}
   server {{$id}} {{$endpoint.IP}}:{{$endpoint.Port}} ssl check inter 5000ms verfy required ca-file /var/lib/containers/router/certs/{{print $cfg.Host "_ressl" | index $cfg.Certificates}}
-{{            end }}
-{{         end }}
-{{      end }}
-{{   end }}
+                {{ end }}
+            {{ end  }}
+        {{ end /* $serviceUnit.ServiceAliasConfigs*/ }}
+{{ end /* $serviceUnit */}}
 
 {{ end }}{{/* end haproxy config template */}}
 
+{{/*--------------------------------- END OF HAPROXY CONFIG, BELOW ARE MAPPING FILES ------------------------*/}}
 {{/*
-    os_http_be.map: contains a mapping of backend.ID -> host_be. See above for the definition of a host_be.
+    os_http_be.map: contains a mapping of www.example.com -> <service name>.  This map is used to discover the correct backend
+                        by attaching a prefix (be_http_, be_tcp_, or be_secure_) by use_backend statements if acls are matched.
 */}}
 {{ define "/var/lib/haproxy/conf/os_http_be.map" }}
 {{   range $id, $serviceUnit := . }}
