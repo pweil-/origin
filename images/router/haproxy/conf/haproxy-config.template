@@ -138,7 +138,7 @@ backend openshift_default
 */}}
 {{ range $id, $serviceUnit := . }}
         {{ range $cfgIdx, $cfg := $serviceUnit.ServiceAliasConfigs }}
-            {{ if eq $cfg.TLSTermination "edge" ||  eq $cfg.TLSTermination "" }}
+            {{ if eq $cfg.TLSTermination "edge" or  eq $cfg.TLSTermination "" }}
 backend be_http_{$id}}
   mode http
   balance leastconn
