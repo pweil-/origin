@@ -45,16 +45,23 @@ frontend public_ssl
   mode tcp
   tcp-request  inspect-delay 5s
   tcp-request content accept if { req_ssl_hello_type 1 }
+
+  # if the connection is SNI and the route is a passthrough don't use the termination backend, just use
+  # the secure backend
+  acl sni_passthrough req.ssl_sni,map(/var/lib/haproxy/conf/host_sni_passthrough.map) eq 1
+  use_backend be_secure_%[hdr(host),map(/var/lib/haproxy/conf/host_be.map)] if {req.ssl_sni -m found} AND sni_passthrough
+
+  # if the route is SNI and NOT passthrough enter the termination flow
   use_backend be_sni if { req.ssl_sni -m found }
+
+  # non SNI requests should enter a default termination backend rather than the custom cert SNI backend since it
+  # will not be able to match a cert to an SNI host
   default_backend be_no_sni
 
 ##########################################################################
 # TLS SNI
 #
-# First check to see if this SNI route is configured as a passthrough, if so then
-# simply pass it along.
-#
-# If not a passthrough, when using SNI we can terminate encryption with custom certificates.
+# When using SNI we can terminate encryption with custom certificates.
 # Certs will be stored in a directory and will be matched with the SNI host header
 # which must exist in the CN of the certificate.  Certificates must be concatenated
 # as a single file (handled by the plugin writer) per the haproxy documentation.
@@ -67,15 +74,12 @@ backend be_sni
   server fe_sni 127.0.0.1:10444 weight 1 send-proxy
 
 frontend fe_sni
-  # for sni passthrough go straight to the backend
-  acl sni_passthrough req.ssl_sni,map(/var/lib/haproxy/conf/host_sni_passthrough.map) eq 1
-  use_backend be_%[hdr(host),map(/var/lib/haproxy/conf/host_be.map)] if sni_passthrough
-
   # terminate ssl on edge
   bind 127.0.0.1:10444 ssl crt /var/lib/containers/router/certs accept-proxy
 
   # re-ssl?
-  # use_backend be_ressl_%[hdr(host),map(/var/lib/haproxy/conf/host_be_ressl.map)] if TRUE
+  acl reencrypt hdr(host),map(/var/lib/haproxy/reencrypt.map) eq 1
+  use_backend be_secure_%[hdr(host),map(/var/lib/haproxy/conf/host_be_ressl.map)] if reencrypt
 
   # regular http
   use_backend be_%[hdr(host),map(/var/lib/haproxy/conf/host_be.map)] if TRUE
@@ -89,26 +93,27 @@ frontend fe_sni
 ##########################################################################
 # TLS NO SNI
 #
-# When we don't have sni the only thing we can try to do is terminate the encryption
+# When we don't have SNI the only thing we can try to do is terminate the encryption
 # using our wild card certificate.  Once that is complete we can either re-encrypt
 # the traffic or pass it on to the backends
 ##########################################################################
+# backend for when sni does not exist, or ssl term needs to happen on the edge
+backend be_no_sni
+  mode tcp
+  server fe_no_sni 127.0.0.1:10443 weight 1 send-proxy
+
 frontend fe_no_sni
   # terminate ssl on edge
   bind 127.0.0.1:10443 ssl crt /var/lib/haproxy/conf/default_pub_keys.pem accept-proxy
 
   # re-ssl?
-  use_backend be_ressl_%[hdr(host),map(/var/lib/haproxy/conf/host_be_ressl.map)] if TRUE
+  acl reencrypt hdr(host),map(/var/lib/haproxy/reencrypt.map) eq 1
+  use_backend be_secure_%[hdr(host),map(/var/lib/haproxy/conf/host_be_ressl.map)] if reencrypt
 
   # regular http
   use_backend be_%[hdr(host),map(/var/lib/haproxy/conf/host_be.map)] if TRUE
 
   default_backend openshift_default
-
-# backend for when sni does not exist, or ssl term needs to happen on the edge
-backend be_no_sni
-  mode tcp
-  server fe_no_sni 127.0.0.1:10443 weight 1 send-proxy
 
 ##########################################################################
 # END TLS NO SNI
@@ -121,16 +126,33 @@ backend openshift_default
   option http-pretend-keepalive
   server openshift_backend 127.0.0.1:8080
 
-##-------------- app level backends ----------------
+##-------------- app level unencrypted backends ----------------
 
 {{   range $id, $serviceUnit := . }}
-backend be_{{$id}} mode http
+backend be_{{$id}}
+  mode http
   balance leastconn
   timeout check 5000ms
 {{     range $endpointID, $endpoint := $serviceUnit.EndpointTable }}
   server {{$id}} {{$endpoint.IP}}:{{$endpoint.Port}} check inter 5000ms
 {{     end }}
 {{   end }}
+
+##-------------- app level secure backends ----------------
+
+{{   range $id, $serviceUnit := . }}
+{{      range $cfgIdx, $cfg := $serviceUnit.ServiceAliasConfigs }}
+{{         if eq $cfg.TLSTermination "reencrypt" or eq $cfg.TLSTermination "pod" }}
+backend be_secure_{{$id}}
+  balance leastconn
+  timeout check 5000ms
+{{            range $endpointID, $endpoint := $serviceUnit.EndpointTable }}
+  server {{$id}} {{$endpoint.IP}}:{{$endpoint.Port}} ssl check inter 5000ms verfy required ca-file /var/lib/containers/router/certs/{{$cfg.Certificates[$cfg.Host + "_ressl"]}}
+{{            end }}
+{{         end }}
+{{      end }}
+{{   end }}
+
 {{ end }}{{/* end haproxy config template */}}
 
 {{/*
