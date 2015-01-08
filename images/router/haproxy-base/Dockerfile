@@ -16,7 +16,7 @@ RUN yum install -y gcc make openssl-devel pcre-devel tar wget socat && \
     mkdir -p /usr/bin && \
     mkdir -p /var/lib/containers/router/certs/ && \
     mkdir -p /var/lib/haproxy/{conf,run,bin,log} && \
-    touch /var/lib/haproxy/conf/{host_be.map,host_sni_passthrough.map,host_be_ressl.map,haproxy.config} && \
+    touch /var/lib/haproxy/conf/{host_be.map,host_sni_passthrough.map,reencrypt.map,haproxy.config} && \
     yum -y remove gcc && \
     yum clean all
 
