@@ -165,8 +165,8 @@ backend be_secure_{{$id}}
   server {{$id}} {{$endpoint.IP}}:{{$endpoint.Port}} ssl check inter 5000ms verfy required ca-file /var/lib/containers/router/certs/{{print $cfg.Host "_ressl" | index $cfg.Certificates}}
                 {{ end }}
             {{ end  }}
-        {{ end /* $serviceUnit.ServiceAliasConfigs*/ }}
-{{ end /* $serviceUnit */}}
+        {{ end  }}{{/* $serviceUnit.ServiceAliasConfigs*/}}
+{{ end }}{{/* $serviceUnit */}}
 
 {{ end }}{{/* end haproxy config template */}}
 
