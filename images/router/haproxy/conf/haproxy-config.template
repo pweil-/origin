@@ -107,7 +107,7 @@ frontend fe_no_sni
   bind 127.0.0.1:10443 ssl crt /var/lib/haproxy/conf/default_pub_keys.pem accept-proxy
 
   # re-ssl?
-  acl reencrypt hdr(host),map(/var/lib/haproxy/reencrypt.map) eq 1
+  acl reencrypt hdr(host),map(/var/lib/haproxy/host_be_ressl.map) eq 1
   use_backend be_secure_%[hdr(host),map(/var/lib/haproxy/conf/host_be_ressl.map)] if reencrypt
 
   # regular http
