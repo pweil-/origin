@@ -9,11 +9,17 @@
                 {
                     "name": "origin-haproxy-router-ROUTER_ID",
                     "image": "openshift/origin-haproxy-router",
-                    "ports": [{
-                        "containerPort": 80,
-                        "hostPort": 80
-                    }],
-                    "command": ["--master=MASTER_IP:8080"],
+                    "ports": [
+                        {
+                            "containerPort": 80,
+                            "hostPort": 80
+                        },
+                        {
+                            "containerPort": 443,
+                            "hostPort": 443
+                        }
+                    ],
+                    "command": ["--master=MASTER_IP:8080", "--loglevel=4"],
                     "imagePullPolicy": "PullIfNotPresent"
                 }
             ],
