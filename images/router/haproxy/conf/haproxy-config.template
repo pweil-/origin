@@ -33,7 +33,7 @@ frontend public
   default_backend openshift_default
 
 # public ssl accepts all connections and isn't checking certificates yet certificates to use will be
-# determined by the next backend in the chain which may be an app backend (pod termination) or a backend
+# determined by the next backend in the chain which may be an app backend (passthrough termination) or a backend
 # that terminates encryption in this router (edge)
 frontend public_ssl
   bind :443
@@ -140,7 +140,7 @@ backend be_http_{{$id}}
                 {{ end }}
             {{ end }}
 
-            {{ if eq $cfg.TLSTermination "pod" }}
+            {{ if eq $cfg.TLSTermination "passthrough" }}
 backend be_tcp_{{$id}}
   balance leastconn
   timeout check 5000ms
@@ -184,7 +184,7 @@ backend be_secure_{{$id}}
 {{ define "/var/lib/haproxy/conf/os_tcp_be.map" }}
 {{   range $id, $serviceUnit := . }}
 {{     range $idx, $cfg := $serviceUnit.ServiceAliasConfigs }}
-{{       if and (ne $cfg.Host "") (or (eq $cfg.TLSTermination "pod") (eq $cfg.TLSTermination "reencrypt")) }}
+{{       if and (ne $cfg.Host "") (or (eq $cfg.TLSTermination "passthrough") (eq $cfg.TLSTermination "reencrypt")) }}
 {{$cfg.Host}} {{$id}}
 {{       end }}
 {{     end }}
@@ -198,7 +198,7 @@ backend be_secure_{{$id}}
 {{ define "/var/lib/haproxy/conf/os_sni_passthrough.map" }}
 {{   range $id, $serviceUnit := . }}
 {{     range $idx, $cfg := $serviceUnit.ServiceAliasConfigs }}
-{{       if eq $cfg.TLSTermination "pod" }}
+{{       if eq $cfg.TLSTermination "passthrough" }}
 {{$cfg.Host}} 1
 {{       end }}
 {{     end }}

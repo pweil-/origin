@@ -17,7 +17,7 @@ func TestValidateTLSNoTLSTermOk(t *testing.T){
 
 func TestValidateTLSPodTermoOK(t *testing.T){
 	errs := validateTLS(&api.TLSConfig{
-		Termination: api.TLSTerminationPod,
+		Termination: api.TLSTerminationPassthrough,
 	})
 
 	if len(errs) > 0 {
@@ -28,7 +28,7 @@ func TestValidateTLSPodTermoOK(t *testing.T){
 func TestValidateTLSReencryptTermOKFile(t *testing.T){
 	errs := validateTLS(&api.TLSConfig{
 		Termination: api.TLSTerminationReencrypt,
-		PodCACertificateFile: "abc",
+		DestinationCACertificateFile: "abc",
 	})
 
 	if len(errs) > 0 {
@@ -39,7 +39,7 @@ func TestValidateTLSReencryptTermOKFile(t *testing.T){
 func TestValidateTLSReencryptTermOKCert(t *testing.T){
 	errs := validateTLS(&api.TLSConfig{
 		Termination: api.TLSTerminationReencrypt,
-		PodCACertificate: []byte("abc"),
+		DestinationCACertificate: []byte("abc"),
 	})
 
 	if len(errs) > 0 {
@@ -110,14 +110,14 @@ func TestValidatePodTermInvalid(t *testing.T){
 		name string
 		cfg api.TLSConfig
 	}{
-		{"cert file", api.TLSConfig{Termination: api.TLSTerminationPod, CertificateFile: "test"}},
-		{"cert", api.TLSConfig{Termination: api.TLSTerminationPod, Certificate: []byte("test")}},
-		{"key file", api.TLSConfig{Termination: api.TLSTerminationPod, KeyFile: "test"}},
-		{"key", api.TLSConfig{Termination: api.TLSTerminationPod, Key: []byte("test")}},
-		{"ca cert file", api.TLSConfig{Termination: api.TLSTerminationPod, CACertificateFile: "test"}},
-		{"ca cert", api.TLSConfig{Termination: api.TLSTerminationPod, CACertificate: []byte("test")}},
-		{"pod cert file", api.TLSConfig{Termination: api.TLSTerminationPod, PodCACertificateFile: "test"}},
-		{"pod cert", api.TLSConfig{Termination: api.TLSTerminationPod, PodCACertificate: []byte("test")}},
+		{"cert file", api.TLSConfig{Termination: api.TLSTerminationPassthrough, CertificateFile: "test"}},
+		{"cert", api.TLSConfig{Termination: api.TLSTerminationPassthrough, Certificate: []byte("test")}},
+		{"key file", api.TLSConfig{Termination: api.TLSTerminationPassthrough, KeyFile: "test"}},
+		{"key", api.TLSConfig{Termination: api.TLSTerminationPassthrough, Key: []byte("test")}},
+		{"ca cert file", api.TLSConfig{Termination: api.TLSTerminationPassthrough, CACertificateFile: "test"}},
+		{"ca cert", api.TLSConfig{Termination: api.TLSTerminationPassthrough, CACertificate: []byte("test")}},
+		{"dest cert file", api.TLSConfig{Termination: api.TLSTerminationPassthrough, DestinationCACertificateFile: "test"}},
+		{"dest cert", api.TLSConfig{Termination: api.TLSTerminationPassthrough, DestinationCACertificate: []byte("test")}},
 	}
 
 	for _, tc := range testCases {

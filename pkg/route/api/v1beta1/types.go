@@ -59,11 +59,11 @@ type TLSConfig struct {
 	//this for storage
 	CACertificate []byte `json:"caCertificate,omitempty" yaml:"caCertificate,omitempty"`
 
-	//when using pod termination this file can be provided in order to have routers use it for health checks
+	//when using passthrough termination this file can be provided in order to have routers use it for health checks
 	//on the secure connection
-	PodCACertificateFile string `json:"podCACertificateFile,omitempty" yaml:"podCACertificateFile,omitempty"`
-	//holds the parsed PodCACertificateFile or can be specified directly
-	PodCACertificate []byte `json:"podCACertificate,omitempty" yaml:"podCACertificate,omitempty"`
+	DestinationCACertificateFile string `json:"destinationCACertificateFile,omitempty" yaml:"destinationCACertificateFile,omitempty"`
+	//holds the parsed DestinationCACertificateFile or can be specified directly
+	DestinationCACertificate []byte `json:"destinationCACertificate,omitempty" yaml:"destinationCACertificate,omitempty"`
 }
 
 // dictates where the secure communication will stop
@@ -72,8 +72,8 @@ type TLSTerminationType string
 const (
 	// terminate encryption at the edge router
 	TLSTerminationEdge      TLSTerminationType = "edge"
-	// terminate encryption at the pod, the pod is responsible for decrypting traffic
-	TLSTerminationPod       TLSTerminationType = "pod"
+	// terminate encryption at the destination, the destination is responsible for decrypting traffic
+	TLSTerminationPassthrough       TLSTerminationType = "passthrough"
 	// terminate encryption at the edge router and re-encrypt it with a new certificate supplied by the pod
 	TLSTerminationReencrypt TLSTerminationType = "reencrypt"
 )
