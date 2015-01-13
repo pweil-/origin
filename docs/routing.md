@@ -144,7 +144,36 @@ route.json
       "host": "hello-openshift.v3.rhcloud.com",
       "serviceName": "hello-openshift"
     }
-    
+
+## Securing Your Routes
+
+Creating a secure route to your pods can be accomplished by specifying the TLS Termination of the route and, optionally,
+providing certificates to use.  TLS Termination falls in the following configuration buckets:
+
+#### Edge Termination
+Edge termination means that TLS Termination occurs prior to traffic reaching the pod.  TLS certificates are served by either 
+inspecting the SNI host sent in the request and finding a certificate for that host (matching the `CommonName` in the 
+certificate file) or, for non-SNI requests by serving a generic certificate.
+
+Edge termination is configured by setting `TLS.Termination` to `edge` on your `route` and by specifying the `CertificateFile`
+and `KeyFile` (at a minimum).  
+
+#### Pod Termination
+Pod termination is a passthrough mechanism to send encrypted traffic straight to your pod.  Pod termination relies on 
+SNI hosts to determine where to route the traffic.  
+
+Pod termination is configured by setting `TLS.Termination` to `pod` on your `route`.  No other information is required.
+The pod will be responsible for serving certificates for the traffic itself.
+
+#### Re-encryption Termination
+Re-encryption is a special case of edge termination where the traffic is first decrypted with certificate A and then 
+re-encrypted with certificate B when sending the traffic to the pod. 
+
+### Special Notes About Secure Routes
+At this point, password protected key files are not supported.  HAProxy prompts you for a password when starting up and 
+does not have a way to automate this process.  We will need a follow up for `KeyPassPhrase`.  To remove a passphrase from 
+a keyfile you may run `openssl rsa -in passwordProtectedKey.key -out new.key`
+
 ## Running HA Routers
 
 Highly available router setups can be accomplished by running multiple instances of the router pod and fronting them with
