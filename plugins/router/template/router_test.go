@@ -145,7 +145,7 @@ func TestAddRoute(t *testing.T){
 			Certificate: []byte("abc"),
 			Key: []byte("def"),
 			CACertificate: []byte("ghi"),
-			PodCACertificate: []byte("jkl"),
+			DestinationCACertificate: []byte("jkl"),
 		},
 	}
 	suKey := "test"
@@ -172,7 +172,7 @@ func TestAddRoute(t *testing.T){
 }
 
 func compareTLS(route *routeapi.Route, saCfg ServiceAliasConfig, t *testing.T) bool {
-	return findCert(route.TLS.PodCACertificate, saCfg.Certificates, false, t) &&
+	return findCert(route.TLS.DestinationCACertificate, saCfg.Certificates, false, t) &&
 			findCert(route.TLS.CACertificate, saCfg.Certificates, false, t) &&
 			findCert(route.TLS.Key, saCfg.Certificates, true, t) &&
 			findCert(route.TLS.Certificate, saCfg.Certificates, false, t)

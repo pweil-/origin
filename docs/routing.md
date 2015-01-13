@@ -148,26 +148,34 @@ route.json
 ## Securing Your Routes
 
 Creating a secure route to your pods can be accomplished by specifying the TLS Termination of the route and, optionally,
-providing certificates to use.  TLS Termination falls in the following configuration buckets:
+providing certificates to use.  As of writing, OpenShift beta1 TLS termination relies on SNI for serving custom certificates.
+In the future, the ability to create custom frontends within the router will allow all traffic to serve custom certificates.
+
+TLS Termination falls in the following configuration buckets:
 
 #### Edge Termination
-Edge termination means that TLS Termination occurs prior to traffic reaching the pod.  TLS certificates are served by either 
-inspecting the SNI host sent in the request and finding a certificate for that host (matching the `CommonName` in the 
-certificate file) or, for non-SNI requests by serving a generic certificate.
+Edge termination means that TLS termination occurs prior to traffic reaching the destination.  TLS certificates are served
+by the frontend of the router.
 
 Edge termination is configured by setting `TLS.Termination` to `edge` on your `route` and by specifying the `CertificateFile`
-and `KeyFile` (at a minimum).  
+and `KeyFile` (at a minimum).  You may also specify your `CACertificateFile` to complete the entire certificate chain.
 
-#### Pod Termination
-Pod termination is a passthrough mechanism to send encrypted traffic straight to your pod.  Pod termination relies on 
-SNI hosts to determine where to route the traffic.  
+#### Passthrough Termination
+Passthrough termination is a mechanism to send encrypted traffic straight to the destination without the router providing
+TLS termination.    
 
-Pod termination is configured by setting `TLS.Termination` to `pod` on your `route`.  No other information is required.
-The pod will be responsible for serving certificates for the traffic itself.
+Passthrough termination is configured by setting `TLS.Termination` to `passthrough` on your `route`.  No other information is required.
+The destination (such as an Nginx, Apache, or another HAProxy instance) will be responsible for serving certificates for 
+the traffic.
 
 #### Re-encryption Termination
 Re-encryption is a special case of edge termination where the traffic is first decrypted with certificate A and then 
-re-encrypted with certificate B when sending the traffic to the pod. 
+re-encrypted with certificate B when sending the traffic to the destination.
+ 
+Re-encryption termination is configured by setting `TLS.Termination` to `reencrypt` and providing the `CertificateFile`,
+`KeyFile`, the `CACertificateFile`, and a `DestinationCACertificateFile`.  The edge certificates remain the same as in the edge
+termination use case.  The `DestinationCACertificateFile` is used in order to validate the secure connection from the 
+router to the destination.
 
 ### Special Notes About Secure Routes
 At this point, password protected key files are not supported.  HAProxy prompts you for a password when starting up and 

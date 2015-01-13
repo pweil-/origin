@@ -32,10 +32,11 @@ func (cm *certManager) writeCertificatesForConfig(config *ServiceAliasConfig) er
 		}
 
 		if config.TLSTermination == routeapi.TLSTerminationReencrypt {
-			podCert, ok := config.Certificates[config.Host + PodCertPostfix]
+			destCertKey := config.Host + DestCertPostfix
+			destCert, ok := config.Certificates[destCertKey]
 
 			if ok {
-				cm.writeCertificate(CaCertDir, config.Host + PodCertPostfix, podCert.Contents)
+				cm.writeCertificate(CaCertDir, destCertKey, destCert.Contents)
 			}
 		}
 	}

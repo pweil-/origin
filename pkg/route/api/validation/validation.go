@@ -36,43 +36,43 @@ func validateTLS(tls *routeapi.TLSConfig) errs.ValidationErrorList {
 
 	//reencrypt must specify pod cert
 	if tls.Termination == routeapi.TLSTerminationReencrypt {
-		if len(tls.PodCACertificate) == 0 && len(tls.PodCACertificateFile) == 0 {
-			result = append(result, errs.NewFieldInvalid("podCACertificateFile", "", "reencrypt termination must specify the podCACertificateFile or the podCACertificate field"))
-			result = append(result, errs.NewFieldInvalid("podCACertificate", "", "reencrypt termination must specify the podCACertificateFile or the podCACertificate field"))
+		if len(tls.DestinationCACertificate) == 0 && len(tls.DestinationCACertificateFile) == 0 {
+			result = append(result, errs.NewFieldInvalid("destinationCACertificateFile", "", "reencrypt termination must specify the destinationCACertificateFile or the destinationCACertificate field"))
+			result = append(result, errs.NewFieldInvalid("destinationCACertificate", "", "reencrypt termination must specify the destinationCACertificateFile or the destinationCACertificate field"))
 		}
 	}
 
 	//pod cert should not specify any cert
-	if tls.Termination == routeapi.TLSTerminationPod {
-		if err := podTerminationCertError("certificateFile", []byte(tls.CertificateFile)); err != nil {
+	if tls.Termination == routeapi.TLSTerminationPassthrough {
+		if err := destTerminationCertError("certificateFile", []byte(tls.CertificateFile)); err != nil {
 			result = append(result, err)
 		}
 
-		if err := podTerminationCertError("certificate", tls.Certificate); err != nil {
+		if err := destTerminationCertError("certificate", tls.Certificate); err != nil {
 			result = append(result, err)
 		}
 
-		if err :=  podTerminationCertError("keyFile", []byte(tls.KeyFile)); err != nil {
+		if err :=  destTerminationCertError("keyFile", []byte(tls.KeyFile)); err != nil {
 			result = append(result, err)
 		}
 
-		if err := podTerminationCertError("key", tls.Key); err != nil {
+		if err := destTerminationCertError("key", tls.Key); err != nil {
 			result = append(result, err)
 		}
 
-		if err := podTerminationCertError("caCertificateFile", []byte(tls.CACertificateFile)); err != nil {
+		if err := destTerminationCertError("caCertificateFile", []byte(tls.CACertificateFile)); err != nil {
 			result = append(result, err)
 		}
 
-		if err := podTerminationCertError("caCertificate", tls.CACertificate); err != nil {
+		if err := destTerminationCertError("caCertificate", tls.CACertificate); err != nil {
 			result = append(result, err)
 		}
 
-		if err := podTerminationCertError("podCACertificateFile", []byte(tls.PodCACertificateFile)); err != nil {
+		if err := destTerminationCertError("destinationCACertificateFile", []byte(tls.DestinationCACertificateFile)); err != nil {
 			result = append(result, err)
 		}
 
-		if err :=podTerminationCertError("podCACertificate", tls.PodCACertificate); err != nil {
+		if err := destTerminationCertError("destinationCACertificate", tls.DestinationCACertificate); err != nil {
 			result = append(result, err)
 		}
 	}
@@ -84,11 +84,11 @@ func validateTLS(tls *routeapi.TLSConfig) errs.ValidationErrorList {
 		result = append(result, edgeTerminationCertError("caCertificate", "caCertificateFile", tls.CACertificate, tls.CACertificateFile)...)
 
 
-		if len(tls.PodCACertificate) > 0 {
-			result = append(result, errs.NewFieldInvalid("podCACertificate", "", "edge termination does not support pod certificates"))
+		if len(tls.DestinationCACertificate) > 0 {
+			result = append(result, errs.NewFieldInvalid("destinationCACertificate", "", "edge termination does not support destination certificates"))
 		}
-		if len(tls.PodCACertificateFile) > 0 {
-			result = append(result, errs.NewFieldInvalid("podCACertificateFile", "", "edge termination does not support pod certificates"))
+		if len(tls.DestinationCACertificateFile) > 0 {
+			result = append(result, errs.NewFieldInvalid("destinationCACertificateFile", "", "edge termination does not support destination certificates"))
 		}
 	}
 
@@ -101,7 +101,7 @@ func validateTLS(tls *routeapi.TLSConfig) errs.ValidationErrorList {
 }
 
 //helper to return a standard error for the pod term validations
-func podTerminationCertError(field string, value []byte) *errs.ValidationError {
+func destTerminationCertError(field string, value []byte) *errs.ValidationError {
 	if len(value) > 0 {
 		return errs.NewFieldInvalid(field, "", "specifying certificates with pod termination is not valid")
 	}

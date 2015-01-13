@@ -161,12 +161,12 @@ func (rs *REST) loadCerts(c *api.TLSConfig) error {
 	}
 	c.CACertificate = caCert
 
-	podCert, err := getCert(c.PodCACertificateFile, c.PodCACertificate)
+	destCert, err := getCert(c.DestinationCACertificateFile, c.DestinationCACertificate)
 
 	if err != nil {
 		return err
 	}
-	c.PodCACertificate = podCert
+	c.DestinationCACertificate = destCert
 
 	return nil
 }

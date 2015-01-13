@@ -24,7 +24,7 @@ const (
 	CaCertDir   = "/var/lib/containers/router/cacerts/"
 
 	CaCertPostfix = "_ca"
-	PodCertPostfix = "_pod"
+	DestCertPostfix = "_pod"
 )
 
 // templateRouter is a backend-agnostic router implementation
@@ -182,7 +182,7 @@ func (r *templateRouter) AddRoute(id string, route *routeapi.Route) {
 	if len(route.TLS.Termination) > 0 {
 		config.TLSTermination = route.TLS.Termination
 
-		if route.TLS.Termination != routeapi.TLSTerminationPod {
+		if route.TLS.Termination != routeapi.TLSTerminationPassthrough {
 			if config.Certificates == nil {
 				config.Certificates = make(map[string]Certificate)
 			}
@@ -205,13 +205,13 @@ func (r *templateRouter) AddRoute(id string, route *routeapi.Route) {
 				config.Certificates[caCert.ID] = caCert
 			}
 
-			if len(route.TLS.PodCACertificate) > 0 {
-				podCert := Certificate {
-					ID: route.Host + PodCertPostfix,
-					Contents: route.TLS.PodCACertificate,
+			if len(route.TLS.DestinationCACertificate) > 0 {
+				destCert := Certificate {
+					ID: route.Host + DestCertPostfix,
+					Contents: route.TLS.DestinationCACertificate,
 				}
 
-				config.Certificates[podCert.ID] = podCert
+				config.Certificates[destCert.ID] = destCert
 			}
 		}
 	}
