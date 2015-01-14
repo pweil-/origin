@@ -13,8 +13,8 @@ OPENSHIFT="${3}"
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
 
 if [[ "${OPENSHIFT}" == "" ]]; then
-    if [[ "$(which osc)" != "" ]]; then
-        OPENSHIFT=$(which osc)
+    if [[ "$(which openshift)" != "" ]]; then
+        OPENSHIFT=$(which openshift)
     fi
 fi
 
@@ -28,7 +28,7 @@ sed -i s/ROUTER_ID/${ROUTER_ID}/g /tmp/router.json
 if [ "${OPENSHIFT}" == "" ]; then
     echo "unable to find openshift binary"
     echo "/tmp/router.json has been created.  In order to start the router please run:"
-    echo "openshift kubectl create -f /tmp/router.json"
+    echo "openshift cli create -f /tmp/router.json pods"
 else
-    "${OPENSHIFT}" create -f /tmp/router.json
+    "${OPENSHIFT}" cli create -f /tmp/router.json pods
 fi

@@ -13,6 +13,7 @@ import (
 
 	"github.com/openshift/origin/pkg/route/api"
 	"github.com/openshift/origin/pkg/route/api/validation"
+	"io/ioutil"
 )
 
 // REST is an implementation of RESTStorage for the api server.
@@ -78,6 +79,12 @@ func (rs *REST) Create(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.R
 
 	kapi.FillObjectMetaSystemFields(ctx, &route.ObjectMeta)
 
+	err := rs.loadCerts(route.TLS)
+
+	if err != nil {
+		return nil, errors.NewInvalid("route", route.Name, errors.ValidationErrorList{err})
+	}
+
 	return apiserver.MakeAsync(func() (runtime.Object, error) {
 		err := rs.registry.CreateRoute(ctx, route)
 		if err != nil {
@@ -103,6 +110,13 @@ func (rs *REST) Update(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.R
 	if errs := validation.ValidateRoute(route); len(errs) > 0 {
 		return nil, errors.NewInvalid("route", route.Name, errs)
 	}
+
+	err := rs.loadCerts(route.TLS)
+
+	if err != nil {
+		return nil, errors.NewInvalid("route", route.Name, errors.ValidationErrorList{err})
+	}
+
 	return apiserver.MakeAsync(func() (runtime.Object, error) {
 		err := rs.registry.UpdateRoute(ctx, route)
 		if err != nil {
@@ -116,4 +130,63 @@ func (rs *REST) Update(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.R
 // It implements apiserver.ResourceWatcher.
 func (rs *REST) Watch(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
 	return rs.registry.WatchRoutes(ctx, label, field, resourceVersion)
+}
+
+//loading and parse certs for the route.
+func (rs *REST) loadCerts(c *api.TLSConfig) error {
+	//empty tls config, nothing to do
+	if c == nil {
+		return nil
+	}
+
+	cert, err := getCert(c.CertificateFile, c.Certificate)
+
+	if err != nil {
+		return err
+	}
+	c.Certificate = cert
+
+	key, err := getCert(c.KeyFile, c.Key)
+
+	if err != nil {
+		return err
+	}
+	c.Key = key
+
+	caCert, err := getCert(c.CACertificateFile, c.CACertificate)
+
+	if err != nil {
+		return err
+	}
+	c.CACertificate = caCert
+
+	destCert, err := getCert(c.DestinationCACertificateFile, c.DestinationCACertificate)
+
+	if err != nil {
+		return err
+	}
+	c.DestinationCACertificate = destCert
+
+	return nil
+}
+
+func getCert(fileName string, fileContents []byte) ([]byte, error) {
+	//already specified
+	if len(fileContents) > 0 {
+		return fileContents, nil
+	}
+
+	//file specified
+	if len(fileName) > 0 {
+		cert, err := ioutil.ReadFile(fileName)
+
+		if err != nil {
+			return nil, err
+		}
+
+		return cert, nil
+	}
+
+	//no cert
+	return nil, nil
 }

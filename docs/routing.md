@@ -23,7 +23,7 @@ Once it is pulled it will start and be visible in the `docker ps` list of contai
 
 
 #### Single machine vagrant environment
-
+    
     $ vagrant up
     $ vagrant ssh
     [vagrant@openshiftdev origin]$ cd /data/src/github.com/openshift/origin/
@@ -32,15 +32,15 @@ Once it is pulled it will start and be visible in the `docker ps` list of contai
     [vagrant@openshiftdev origin]$ sudo /data/src/github.com/openshift/origin/_output/local/bin/linux/amd64/openshift start &
     [vagrant@openshiftdev origin]$ hack/install-router.sh {router_id} {master ip}
     [vagrant@openshiftdev origin]$ openshift kubectl get pods
-
-#### Clustered vagrant environment
+    
+#### Clustered vagrant environment    
 
 
     $ export OPENSHIFT_DEV_CLUSTER=true
     $ vagrant up
     $ vagrant ssh master
     [vagrant@openshift-master ~]$ hack/install-router.sh {router_id} {master ip}
-
+  
 
 
 ### In a deployed environment
@@ -83,7 +83,7 @@ To test your route independent of DNS you can send a host header to the router. 
     [vagrant@openshiftdev origin]$ openshift kubectl create -f ~/route.json
     [vagrant@openshiftdev origin]$ curl -H "Host:hello-openshift.v3.rhcloud.com" <vm ip>
     Hello OpenShift!
-
+    
     $ ..... vagrant up with cluster instructions .....
     $ ..... create config files listed below in ~ ........
     [vagrant@openshift-master ~]$ openshift kubectl create -f ~/pod.json
@@ -93,9 +93,9 @@ To test your route independent of DNS you can send a host header to the router. 
     [vagrant@openshift-master ~]$ openshift kubectl get pods
     [vagrant@openshift-master ~]$ curl -H "Host:hello-openshift.v3.rhcloud.com" openshift-minion-<1,2>
     Hello OpenShift!
+    
 
-
-
+    
 
 Configuration files (to be created in the vagrant home directory)
 
@@ -133,8 +133,8 @@ service.json
       "selector": {
         "name": "hello-openshift"
       },
-    }
-
+    }   
+     
 route.json
 
     {
@@ -144,6 +144,43 @@ route.json
       "host": "hello-openshift.v3.rhcloud.com",
       "serviceName": "hello-openshift"
     }
+
+## Securing Your Routes
+
+Creating a secure route to your pods can be accomplished by specifying the TLS Termination of the route and, optionally,
+providing certificates to use.  As of writing, OpenShift beta1 TLS termination relies on SNI for serving custom certificates.
+In the future, the ability to create custom frontends within the router will allow all traffic to serve custom certificates.
+
+TLS Termination falls in the following configuration buckets:
+
+#### Edge Termination
+Edge termination means that TLS termination occurs prior to traffic reaching the destination.  TLS certificates are served
+by the frontend of the router.
+
+Edge termination is configured by setting `TLS.Termination` to `edge` on your `route` and by specifying the `CertificateFile`
+and `KeyFile` (at a minimum).  You may also specify your `CACertificateFile` to complete the entire certificate chain.
+
+#### Passthrough Termination
+Passthrough termination is a mechanism to send encrypted traffic straight to the destination without the router providing
+TLS termination.    
+
+Passthrough termination is configured by setting `TLS.Termination` to `passthrough` on your `route`.  No other information is required.
+The destination (such as an Nginx, Apache, or another HAProxy instance) will be responsible for serving certificates for 
+the traffic.
+
+#### Re-encryption Termination
+Re-encryption is a special case of edge termination where the traffic is first decrypted with certificate A and then 
+re-encrypted with certificate B when sending the traffic to the destination.
+ 
+Re-encryption termination is configured by setting `TLS.Termination` to `reencrypt` and providing the `CertificateFile`,
+`KeyFile`, the `CACertificateFile`, and a `DestinationCACertificateFile`.  The edge certificates remain the same as in the edge
+termination use case.  The `DestinationCACertificateFile` is used in order to validate the secure connection from the 
+router to the destination.
+
+### Special Notes About Secure Routes
+At this point, password protected key files are not supported.  HAProxy prompts you for a password when starting up and 
+does not have a way to automate this process.  We will need a follow up for `KeyPassPhrase`.  To remove a passphrase from 
+a keyfile you may run `openssl rsa -in passwordProtectedKey.key -out new.key`
 
 ## Running HA Routers
 
@@ -164,11 +201,11 @@ same lookup.  Doing multiple pings show the resolution swapping between IP addre
             type master;
             file "v3.rhcloud.com.zone";
     };
-
+    
 
 #### v3.rhcloud.com.zone - contains the round robin mappings for the DNS lookup
     $ORIGIN v3.rhcloud.com.
-
+    
     @       IN      SOA     . v3.rhcloud.com. (
                          2009092001         ; Serial
                              604800         ; Refresh
@@ -179,40 +216,40 @@ same lookup.  Doing multiple pings show the resolution swapping between IP addre
     ns1     IN      A       127.0.0.1
     *       IN      A       10.245.2.2
             IN      A       10.245.2.3
-
+            
 
 #### Testing the entry
-
-
+            
+            
     [vagrant@openshift-master ~]$ dig hello-openshift.shard1.v3.rhcloud.com
-
+        
     ; <<>> DiG 9.9.4-P2-RedHat-9.9.4-16.P2.fc20 <<>> hello-openshift.shard1.v3.rhcloud.com
     ;; global options: +cmd
     ;; Got answer:
     ;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 36389
     ;; flags: qr aa rd; QUERY: 1, ANSWER: 2, AUTHORITY: 1, ADDITIONAL: 2
     ;; WARNING: recursion requested but not available
-
+    
     ;; OPT PSEUDOSECTION:
     ; EDNS: version: 0, flags:; udp: 4096
     ;; QUESTION SECTION:
     ;hello-openshift.shard1.v3.rhcloud.com. IN A
-
+    
     ;; ANSWER SECTION:
     hello-openshift.shard1.v3.rhcloud.com. 300 IN A	10.245.2.2
     hello-openshift.shard1.v3.rhcloud.com. 300 IN A	10.245.2.3
-
+    
     ;; AUTHORITY SECTION:
     v3.rhcloud.com.		300	IN	NS	ns1.v3.rhcloud.com.
-
+    
     ;; ADDITIONAL SECTION:
     ns1.v3.rhcloud.com.	300	IN	A	127.0.0.1
-
+    
     ;; Query time: 5 msec
     ;; SERVER: 10.245.2.3#53(10.245.2.3)
     ;; WHEN: Wed Nov 19 19:01:32 UTC 2014
     ;; MSG SIZE  rcvd: 132
-
+    
     [vagrant@openshift-master ~]$ ping hello-openshift.shard1.v3.rhcloud.com
     PING hello-openshift.shard1.v3.rhcloud.com (10.245.2.3) 56(84) bytes of data.
     ...
@@ -233,7 +270,7 @@ in `docker images` that is ready to use.
 
 	$ hack/build-base-images.sh
     $ hack/build-images.sh
-
+    
 ## Dev - router internals
 
 The router is an [HAProxy](http://www.haproxy.org/) container that is run via a go wrapper (`openshift-router.go`) that 
