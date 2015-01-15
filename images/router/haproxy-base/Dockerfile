@@ -24,3 +24,4 @@ ADD conf/ /var/lib/haproxy/conf/
 # add the dummy cert to the app cert directory as well to avoid errors with default config
 ADD conf/ /var/lib/containers/router/certs/
 EXPOSE 80
+EXPOSE 443
