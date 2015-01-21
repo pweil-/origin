@@ -31,8 +31,8 @@ type ServiceAliasConfig struct {
 
 type Certificate struct {
 	ID                 string
-	Contents           []byte
-	PrivateKey         []byte
+	Contents           string
+	PrivateKey         string
 }
 
 type Endpoint struct {

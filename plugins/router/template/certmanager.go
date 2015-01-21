@@ -18,8 +18,8 @@ func (cm *certManager) writeCertificatesForConfig(config *ServiceAliasConfig) er
 
 			if ok {
 				newLine := []byte("\n")
-				cert := certObj.Contents
-				key := certObj.PrivateKey
+				cert := []byte(certObj.Contents)
+				key := []byte(certObj.PrivateKey)
 				dat := append(key, newLine...)
 				dat = append(dat, cert...)
 
@@ -39,7 +39,7 @@ func (cm *certManager) writeCertificatesForConfig(config *ServiceAliasConfig) er
 			destCert, ok := config.Certificates[destCertKey]
 
 			if ok {
-				cm.writeCertificate(CaCertDir, destCertKey, destCert.Contents)
+				cm.writeCertificate(CaCertDir, destCertKey, []byte(destCert.Contents))
 			}
 		}
 	}

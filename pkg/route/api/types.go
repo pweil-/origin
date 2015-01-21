@@ -36,17 +36,17 @@ type TLSConfig struct {
 	Termination TLSTerminationType `json:"termination,omitempty" yaml:"termination,omitempty"`
 
 	//certificate contents
-	Certificate []byte `json:"certificate,omitempty" yaml:"certificate,omitempty"`
+	Certificate string `json:"certificate,omitempty" yaml:"certificate,omitempty"`
 
 	//key file contents.  Required for edge termination.
-	Key []byte `json:"key,omitempty" yaml:"key,omitempty"`
+	Key string `json:"key,omitempty" yaml:"key,omitempty"`
 
 	//CA Certificate contents
-	CACertificate []byte `json:"caCertificate,omitempty" yaml:"caCertificate,omitempty"`
+	CACertificate string `json:"caCertificate,omitempty" yaml:"caCertificate,omitempty"`
 
 	//when using reencrypt termination this file should be provided in order to have routers use it for health checks
 	//on the secure connection
-	DestinationCACertificate []byte `json:"destinationCACertificate,omitempty" yaml:"destinationCACertificate,omitempty"`
+	DestinationCACertificate string `json:"destinationCACertificate,omitempty" yaml:"destinationCACertificate,omitempty"`
 }
 
 // dictates where the secure communication will stop
