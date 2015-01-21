@@ -103,6 +103,7 @@ func (rs *REST) Update(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.R
 	if errs := validation.ValidateRoute(route); len(errs) > 0 {
 		return nil, errors.NewInvalid("route", route.Name, errs)
 	}
+
 	return apiserver.MakeAsync(func() (runtime.Object, error) {
 		err := rs.registry.UpdateRoute(ctx, route)
 		if err != nil {
@@ -117,3 +118,4 @@ func (rs *REST) Update(ctx kapi.Context, obj runtime.Object) (<-chan apiserver.R
 func (rs *REST) Watch(ctx kapi.Context, label, field labels.Selector, resourceVersion string) (watch.Interface, error) {
 	return rs.registry.WatchRoutes(ctx, label, field, resourceVersion)
 }
+
