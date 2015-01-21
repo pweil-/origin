@@ -141,10 +141,10 @@ func TestAddRoute(t *testing.T) {
 		Path: "path",
 		TLS: &routeapi.TLSConfig{
 			Termination:              routeapi.TLSTerminationEdge,
-			Certificate:              []byte("abc"),
-			Key:                      []byte("def"),
-			CACertificate:            []byte("ghi"),
-			DestinationCACertificate: []byte("jkl"),
+			Certificate:              "abc",
+			Key:                      "def",
+			CACertificate:            "ghi",
+			DestinationCACertificate: "jkl",
 		},
 	}
 	suKey := "test"
@@ -177,18 +177,17 @@ func compareTLS(route *routeapi.Route, saCfg ServiceAliasConfig, t *testing.T) b
 		findCert(route.TLS.Certificate, saCfg.Certificates, false, t)
 }
 
-func findCert(cert []byte, certs map[string]Certificate, isPrivateKey bool, t *testing.T) bool {
+func findCert(cert string, certs map[string]Certificate, isPrivateKey bool, t *testing.T) bool {
 	found := false
-	sCert := string(cert)
 
 	for _, c := range certs {
 		if isPrivateKey {
-			if string(c.PrivateKey) == sCert {
+			if c.PrivateKey == cert {
 				found = true
 				break
 			}
 		} else {
-			if string(c.Contents) == sCert {
+			if c.Contents == cert {
 				found = true
 				break
 			}
@@ -196,7 +195,7 @@ func findCert(cert []byte, certs map[string]Certificate, isPrivateKey bool, t *t
 	}
 
 	if !found {
-		t.Errorf("unable to find cert %s in %v", sCert, certs)
+		t.Errorf("unable to find cert %s in %v", cert, certs)
 	}
 
 	return found

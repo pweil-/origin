@@ -85,9 +85,9 @@ func TestRouter(t *testing.T){
 			expectedResponse: tr.HelloPod,
 			routeTLS: &routeapi.TLSConfig{
 				Termination: routeapi.TLSTerminationEdge,
-				Certificate: []byte(tr.ExampleCert),
-				Key: []byte(tr.ExampleKey),
-				CACertificate: []byte(tr.ExampleCACert),
+				Certificate: tr.ExampleCert,
+				Key: tr.ExampleKey,
+				CACertificate: tr.ExampleCACert,
 			},
 		},
 		{

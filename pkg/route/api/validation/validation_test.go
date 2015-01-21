@@ -29,7 +29,7 @@ func TestValidateTLSPodTermoOK(t *testing.T) {
 func TestValidateTLSReencryptTermOKCert(t *testing.T) {
 	errs := validateTLS(&api.TLSConfig{
 		Termination:              api.TLSTerminationReencrypt,
-		DestinationCACertificate: []byte("abc"),
+		DestinationCACertificate: "abc",
 	})
 
 	if len(errs) > 0 {
@@ -41,9 +41,9 @@ func TestValidateTLSReencryptTermOKCert(t *testing.T) {
 func TestValidateTLSEdgeTermOKCerts(t *testing.T) {
 	errs := validateTLS(&api.TLSConfig{
 		Termination:   api.TLSTerminationEdge,
-		Certificate:   []byte("abc"),
-		Key:           []byte("abc"),
-		CACertificate: []byte("abc"),
+		Certificate:  "abc",
+		Key:          "abc",
+		CACertificate: "abc",
 	})
 
 	if len(errs) > 0 {
@@ -58,18 +58,18 @@ func TestValidateEdgeTermInvalid(t *testing.T) {
 	}{
 		{"no cert", api.TLSConfig{
 			Termination:   api.TLSTerminationEdge,
-			Key:           []byte("abc"),
-			CACertificate: []byte("abc"),
+			Key:           "abc",
+			CACertificate: "abc",
 		}},
 		{"no key", api.TLSConfig{
 			Termination:   api.TLSTerminationEdge,
-			Certificate:   []byte("abc"),
-			CACertificate: []byte("abc"),
+			Certificate:   "abc",
+			CACertificate: "abc",
 		}},
 		{"no ca cert", api.TLSConfig{
 			Termination: api.TLSTerminationEdge,
-			Certificate: []byte("abc"),
-			Key:         []byte("abc"),
+			Certificate: "abc",
+			Key:         "abc",
 		}},
 	}
 
@@ -87,10 +87,10 @@ func TestValidatePodTermInvalid(t *testing.T) {
 		name string
 		cfg  api.TLSConfig
 	}{
-		{"cert", api.TLSConfig{Termination: api.TLSTerminationPassthrough, Certificate: []byte("test")}},
-		{"key", api.TLSConfig{Termination: api.TLSTerminationPassthrough, Key: []byte("test")}},
-		{"ca cert", api.TLSConfig{Termination: api.TLSTerminationPassthrough, CACertificate: []byte("test")}},
-		{"dest cert", api.TLSConfig{Termination: api.TLSTerminationPassthrough, DestinationCACertificate: []byte("test")}},
+		{"cert", api.TLSConfig{Termination: api.TLSTerminationPassthrough, Certificate: "test"}},
+		{"key", api.TLSConfig{Termination: api.TLSTerminationPassthrough, Key: "test"}},
+		{"ca cert", api.TLSConfig{Termination: api.TLSTerminationPassthrough, CACertificate: "test"}},
+		{"dest cert", api.TLSConfig{Termination: api.TLSTerminationPassthrough, DestinationCACertificate: "test"}},
 	}
 
 	for _, tc := range testCases {
