@@ -17,13 +17,16 @@ func (cm *certManager) writeCertificatesForConfig(config *ServiceAliasConfig) er
 			certObj, ok := config.Certificates[config.Host]
 
 			if ok {
+				newLine := []byte("\n")
 				cert := certObj.Contents
 				key := certObj.PrivateKey
-				dat := append(key, cert...)
+				dat := append(key, newLine...)
+				dat = append(dat, cert...)
 
 				caCertObj, caOk := config.Certificates[config.Host+CaCertPostfix]
 
 				if caOk {
+					dat = append(dat, newLine...)
 					dat = append(dat, caCertObj.Contents...)
 				}
 

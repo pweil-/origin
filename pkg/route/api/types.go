@@ -59,7 +59,7 @@ type TLSConfig struct {
 	//this for storage
 	CACertificate []byte `json:"caCertificate,omitempty" yaml:"caCertificate,omitempty"`
 
-	//when using passthrough termination this file can be provided in order to have routers use it for health checks
+	//when using reencrypt termination this file can be provided in order to have routers use it for health checks
 	//on the secure connection
 	DestinationCACertificateFile string `json:"destinationCACertificateFile,omitempty" yaml:"destinationCACertificateFile,omitempty"`
 	//holds the parsed DestinationCACertificateFile or can be specified directly

@@ -11,5 +11,4 @@ ADD bin/openshift /usr/bin/openshift
 RUN ln -s /usr/bin/openshift /usr/bin/openshift-router
 
 EXPOSE 80
-EXPOSE 443
 ENTRYPOINT ["/usr/bin/openshift-router", "--template=/var/lib/haproxy/conf/haproxy-config.template", "--reload=/var/lib/haproxy/reload-haproxy"]
