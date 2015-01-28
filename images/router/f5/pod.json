@@ -1,0 +1,45 @@
+{
+    "kind": "Pod",
+    "apiVersion": "v1beta1",
+    "id": "router",
+    "desiredState": {
+        "manifest": {
+            "version": "v1beta2",
+            "containers": [
+                {
+                    "name": "origin-f5-router",
+                    "image": "openshift/origin-f5-router",
+                    "ports": [
+                        {
+                            "containerPort": 80,
+                            "hostPort": 80
+                        },
+                        {
+                            "containerPort": 443,
+                            "hostPort": 443
+                        }
+                    ],
+                    "env": [
+                        {
+                            "name": "OPENSHIFT_MASTER",
+                            "value": "https://10.0.2.15:8443"
+                        },
+                        {
+                            "name": "OPENSHIFT_CA_DATA",
+                            "value": "-----BEGIN CERTIFICATE-----\nMIIC2DCCAcKgAwIBAgIBATALBgkqhkiG9w0BAQswHzEdMBsGA1UEAwwUMTAuMC4y\nLjE1QDE0MjI0Nzk5NTUwHhcNMTUwMTI4MjExOTE1WhcNMTYwMTI4MjExOTE2WjAf\nMR0wGwYDVQQDDBQxMC4wLjIuMTVAMTQyMjQ3OTk1NTCCASIwDQYJKoZIhvcNAQEB\nBQADggEPADCCAQoCggEBANx2bwkhhykiCk9smg+1RAUAvDSLMRu9e3HaSjwMVDFc\nOGEA6OjPmMjp3D4/Y8FE5yFMdoSYubP6Uf5ON1CJpF6cp/JppQOtSpKSDm/o0OVp\nGuX9EbsbXWM8/M5CDvsO1dOHEVe76Dbu9t9HhKBaGgWpzN7os34IJpiOLedeAIiM\nBTSILpEpfCOevZ4gZnsXZWZydVR+EvOeCwAopXwqrJpRCooBK8P9X2QJbQasRoYY\nHDS3yWKmJBUeXBwa+OnJuc9s06B95j3dsupSpKEqPMBVsMLjB8LzJRo4PyttDrte\nIa30ucdX93wBV44b8JbY1csSq2vCalCKnTfk4OOS5xsCAwEAAaMjMCEwDgYDVR0P\nAQH/BAQDAgCkMA8GA1UdEwEB/wQFMAMBAf8wCwYJKoZIhvcNAQELA4IBAQC88U4g\nc6dzqAiTN51Vx0odaZruLGOadQ0POWAkQFFtqrsNq8xUx9fvdLNpDg6QuFXdLdxV\npptaLXo8EcL2WqZ/bpBOPILtW2xliZ2xOa++R3ozn7PwaGRNNBsVoVgzQ+ycW85f\nX62vj8SQUtAfpnVo5v3m/hybiSone3V4JeJafXlJuR/A6BggcCjyTYX/6VkVqv0N\n/duszuN21dHvGCAuNGS1y+U3mWtFYAsq/wNHLBWoQvya3gZ51QX33Ol7sNAP4s7d\nFiabbJxKi5T5tbovXlIsKKMoOokTGh2u4Q5skq/u+yURERWBi98P8DaPcPoIAko9\nlintIhYaKIfuay/F\n-----END CERTIFICATE-----"
+                        },
+                        {
+                            "name": "OPENSHIFT_INSECURE",
+                            "value": "false"
+                        }
+                    ],
+                    "command": ["--loglevel=4"],
+                    "imagePullPolicy": "PullIfNotPresent"
+                }
+            ],
+            "restartPolicy": {
+                "always": {}
+            }
+        }
+    }
+}

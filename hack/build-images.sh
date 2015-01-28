@@ -33,6 +33,7 @@ tar xzf "${releases}" -C "${imagedir}"
 # copy build artifacts to the appropriate locations
 cp -f "${imagedir}/openshift" images/origin/bin
 cp -f "${imagedir}/openshift" images/router/haproxy/bin
+cp -f "${imagedir}/openshift" images/router/f5/bin
 
 # build hello-openshift binary
 "${OS_ROOT}/hack/build-go.sh" examples/hello-openshift
@@ -42,6 +43,8 @@ echo "--- openshift/origin ---"
 docker build -t openshift/origin                images/origin
 echo "--- openshift/origin-haproxy-router ---"
 docker build -t openshift/origin-haproxy-router images/router/haproxy
+echo "--- openshift/origin-f5-router ---"
+docker build -t openshift/origin-f5-router images/router/f5
 echo "--- openshift/hello-openshift ---"
 docker build -t openshift/hello-openshift       examples/hello-openshift
 
