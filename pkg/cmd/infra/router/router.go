@@ -53,11 +53,17 @@ const (
 	routerTypeTemplate = "template"
 )
 
+func newEmptyConfig() *routerConfig {
+	return &routerConfig{
+		Config: clientcmd.NewConfig(),
+		TemplateRouterConfig: &templateRouterConfig{},
+		F5RouterConfig: &f5RouterConfig{},
+	}
+}
+
 // NewCommndTemplateRouter provides CLI handler for the template router backend
 func NewCommandTemplateRouter(name string) *cobra.Command {
-	cfg := &routerConfig{
-		Config: clientcmd.NewConfig(),
-	}
+	cfg := newEmptyConfig()
 
 	cmd := &cobra.Command{
 		Use:   fmt.Sprintf("%s%s", name, clientcmd.ConfigSyntax),
