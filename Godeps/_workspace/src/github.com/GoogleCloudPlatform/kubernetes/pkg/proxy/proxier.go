@@ -463,28 +463,29 @@ func (proxier *Proxier) OnUpdate(services []api.Service) {
 	glog.V(4).Infof("Received update notice: %+v", services)
 	activeServices := util.StringSet{}
 	for _, service := range services {
-		activeServices.Insert(service.Name)
-		info, exists := proxier.getServiceInfo(service.Name)
+		qualifiedServiceName := service.Namespace + ":" + service.Name
+		activeServices.Insert(qualifiedServiceName)
+		info, exists := proxier.getServiceInfo(qualifiedServiceName)
 		serviceIP := net.ParseIP(service.Spec.PortalIP)
 		// TODO: check health of the socket?  What if ProxyLoop exited?
 		if exists && info.portalPort == service.Spec.Port && info.portalIP.Equal(serviceIP) {
 			continue
 		}
 		if exists && (info.portalPort != service.Spec.Port || !info.portalIP.Equal(serviceIP) || !ipsEqual(service.Spec.PublicIPs, info.publicIP)) {
-			glog.V(4).Infof("Something changed for service %q: stopping it", service.Name)
-			err := proxier.closePortal(service.Name, info)
+			glog.V(4).Infof("Something changed for service %q: stopping it", qualifiedServiceName)
+			err := proxier.closePortal(qualifiedServiceName, info)
 			if err != nil {
-				glog.Errorf("Failed to close portal for %q: %v", service.Name, err)
+				glog.Errorf("Failed to close portal for %q: %v", qualifiedServiceName, err)
 			}
-			err = proxier.stopProxy(service.Name, info)
+			err = proxier.stopProxy(qualifiedServiceName, info)
 			if err != nil {
-				glog.Errorf("Failed to stop service %q: %v", service.Name, err)
+				glog.Errorf("Failed to stop service %q: %v", qualifiedServiceName, err)
 			}
 		}
-		glog.V(1).Infof("Adding new service %q at %s:%d/%s (local :%d)", service.Name, serviceIP, service.Spec.Port, service.Spec.Protocol, service.Spec.ProxyPort)
-		info, err := proxier.addServiceOnPort(service.Name, service.Spec.Protocol, service.Spec.ProxyPort, udpIdleTimeout)
+		glog.V(1).Infof("Adding new service %q at %s:%d/%s (local :%d)", qualifiedServiceName, serviceIP, service.Spec.Port, service.Spec.Protocol, service.Spec.ProxyPort)
+		info, err := proxier.addServiceOnPort(qualifiedServiceName, service.Spec.Protocol, service.Spec.ProxyPort, udpIdleTimeout)
 		if err != nil {
-			glog.Errorf("Failed to start proxy for %q: %v", service.Name, err)
+			glog.Errorf("Failed to start proxy for %q: %v", qualifiedServiceName, err)
 			continue
 		}
 		info.portalIP = serviceIP
@@ -495,11 +496,11 @@ func (proxier *Proxier) OnUpdate(services []api.Service) {
 		info.stickyMaxAgeMinutes = 180
 		glog.V(4).Infof("info: %+v", info)
 
-		err = proxier.openPortal(service.Name, info)
+		err = proxier.openPortal(qualifiedServiceName, info)
 		if err != nil {
-			glog.Errorf("Failed to open portal for %q: %v", service.Name, err)
+			glog.Errorf("Failed to open portal for %q: %v", qualifiedServiceName, err)
 		}
-		proxier.loadBalancer.NewService(service.Name, info.sessionAffinityType, info.stickyMaxAgeMinutes)
+		proxier.loadBalancer.NewService(qualifiedServiceName, info.sessionAffinityType, info.stickyMaxAgeMinutes)
 	}
 	proxier.mu.Lock()
 	defer proxier.mu.Unlock()

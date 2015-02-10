@@ -209,21 +209,22 @@ func (lb *LoadBalancerRR) OnUpdate(endpoints []api.Endpoints) {
 	defer lb.lock.Unlock()
 	// Update endpoints for services.
 	for _, endpoint := range endpoints {
-		existingEndpoints, exists := lb.endpointsMap[endpoint.Name]
+		qualifiedName := endpoint.Namespace + ":" + endpoint.Name
+		existingEndpoints, exists := lb.endpointsMap[qualifiedName]
 		validEndpoints := filterValidEndpoints(endpoint.Endpoints)
 		if !exists || !reflect.DeepEqual(slice.SortStrings(slice.CopyStrings(existingEndpoints)), slice.SortStrings(validEndpoints)) {
-			glog.V(3).Infof("LoadBalancerRR: Setting endpoints for %s to %+v", endpoint.Name, endpoint.Endpoints)
-			updateServiceDetailMap(lb, endpoint.Name, validEndpoints)
+			glog.V(3).Infof("LoadBalancerRR: Setting endpoints for %s to %+v", qualifiedName, endpoint.Endpoints)
+			updateServiceDetailMap(lb, qualifiedName, validEndpoints)
 			// On update can be called without NewService being called externally.
 			// to be safe we will call it here.  A new service will only be created
 			// if one does not already exist.
-			lb.NewService(endpoint.Name, api.AffinityTypeNone, 0)
-			lb.endpointsMap[endpoint.Name] = slice.ShuffleStrings(validEndpoints)
+			lb.NewService(qualifiedName, api.AffinityTypeNone, 0)
+			lb.endpointsMap[qualifiedName] = slice.ShuffleStrings(validEndpoints)
 
 			// Reset the round-robin index.
-			lb.rrIndex[endpoint.Name] = 0
+			lb.rrIndex[qualifiedName] = 0
 		}
-		registeredEndpoints[endpoint.Name] = true
+		registeredEndpoints[qualifiedName] = true
 	}
 	// Remove endpoints missing from the update.
 	for k, v := range lb.endpointsMap {
