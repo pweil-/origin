@@ -5,6 +5,8 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"strings"
+	"strconv"
 	"text/template"
 
 	"github.com/golang/glog"
@@ -124,8 +126,30 @@ func (r *templateRouter) reloadRouter() error {
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		glog.Errorf("Error reloading router: %v\n Reload output: %v", err, string(out))
+		return err
 	}
-	return err
+
+	pidParts := strings.Split(string(out), ":")
+
+	if len(pidParts) > 0 && pidParts[0] == "Old Pid" {
+		pid, err := strconv.ParseInt(pidParts[1], 10, 64)
+
+		if err == nil {
+			go func() {
+				glog.Infof("Reaping old pid: %d", pid)
+				proc, e := os.FindProcess(int(pid))
+				if e == nil {
+					proc.Wait()
+				}else{
+					glog.Errorf("Unable to find process %s : %v", pid, e)
+				}
+			}()
+		} else {
+			glog.Warningf("Found old pid but unable to parse to int: %s", pidParts[1])
+		}
+	}
+
+	return nil
 }
 
 // CreateServiceUnit creates a new service named with the given id.

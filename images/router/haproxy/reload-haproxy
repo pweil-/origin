@@ -9,6 +9,7 @@ if [ -f $pid_file ]; then
 fi
 
 if [ -n "$old_pid" ]; then
+  echo "Old Pid:${old_pid}:"
   /usr/sbin/haproxy -f $config_file -p $pid_file -sf $old_pid
 else
   /usr/sbin/haproxy -f $config_file -p $pid_file
