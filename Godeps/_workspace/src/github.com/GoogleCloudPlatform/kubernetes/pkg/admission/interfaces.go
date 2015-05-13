@@ -18,6 +18,7 @@ package admission
 
 import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 )
 
 // Attributes is an interface used by AdmissionController to get information about a request
@@ -28,6 +29,7 @@ type Attributes interface {
 	GetOperation() string
 	GetObject() runtime.Object
 	GetKind() string
+	GetContext() api.Context
 }
 
 // Interface is an abstract, pluggable interface for Admission Control decisions.

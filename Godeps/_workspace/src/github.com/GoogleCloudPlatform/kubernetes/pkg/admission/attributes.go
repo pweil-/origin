@@ -17,6 +17,7 @@ limitations under the License.
 package admission
 
 import (
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 )
 
@@ -26,15 +27,17 @@ type attributesRecord struct {
 	resource  string
 	operation string
 	object    runtime.Object
+	context   api.Context
 }
 
-func NewAttributesRecord(object runtime.Object, kind, namespace, resource, operation string) Attributes {
+func NewAttributesRecord(object runtime.Object, kind, namespace, resource, operation string, context api.Context) Attributes {
 	return &attributesRecord{
 		kind:      kind,
 		namespace: namespace,
 		resource:  resource,
 		operation: operation,
 		object:    object,
+		context:   context,
 	}
 }
 
@@ -56,4 +59,8 @@ func (record *attributesRecord) GetOperation() string {
 
 func (record *attributesRecord) GetObject() runtime.Object {
 	return record.object
+}
+
+func (record *attributesRecord) GetContext() api.Context {
+	return record.context
 }

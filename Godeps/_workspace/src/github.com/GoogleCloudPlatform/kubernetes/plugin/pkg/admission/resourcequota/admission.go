@@ -70,6 +70,14 @@ var resourceToResourceName = map[string]api.ResourceName{
 }
 
 func (q *quota) Admit(a admission.Attributes) (err error) {
+	////////////////// test
+	ctx := a.GetContext()
+	info, ok := api.UserFrom(ctx)
+	if !ok {
+		return fmt.Errorf("not ok in user from")
+	}
+	return fmt.Errorf("got user info %#v", info)
+
 	if a.GetOperation() == "DELETE" {
 		return nil
 	}
