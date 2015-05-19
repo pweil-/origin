@@ -23,6 +23,16 @@ defaults
   # Long timeout for WebSocket connections.
   timeout tunnel 1h
 
+{{/* This port is non-configurable via the router cmd, it is HAProxy specific.  Labels must
+     match the -L argument of reload-haproxy.
+*/}}
+{{ if (len .PeerEndpoints) gt 0 }}
+peers openshift_peers
+  {{ range $endpointID, $endpoint := .PeerEndpoints }}
+    peer {{$endpoint.TargetName}} {{$endpoint.IP}}:1937
+  {{ end }}
+{{ end }}
+
 listen stats :1936
     mode http
     stats enable
@@ -143,6 +153,16 @@ backend openshift_default
         2. if the config is terminated at the pod create a be_tcp_<service> backend, we will use SNI to discover
             where to send the traffic but should run the be in tcp mode
         3. if the config is terminated at the
+
+    Sticky sessions
+        1.  It is assumed that backends operating in http mode will use cookies for sticky sessions
+        2.  It is assumed that backends operating in tcp mode will use stick-tables for sticky sessions
+        3.  Cookies must maintain a unique name so they don't end up persisting sessions accross
+            unrelated backends
+        4.  Cookies should be sent as httponly and secure backends should also include the secure
+            directive so the cookie may not be passed over an unsecure connection
+        5.  Stick tables have a max size of 1m which should allow 20k connections when using
+            ip.  Storing the ip takes about 50 bytes. https://cbonte.github.io/haproxy-dconv/configuration-1.5.html#4.2-stick-table%20type
 */}}
 {{ range $id, $serviceUnit := .State }}
         {{ range $cfgIdx, $cfg := $serviceUnit.ServiceAliasConfigs }}
@@ -155,8 +175,13 @@ backend be_edge_http_{{$cfgIdx}}
   mode http
   balance leastconn
   timeout check 5000ms
+  {{ if (eq $cfg.TLSTermination "") }}
+  cookie OPENSHIFT_{{$cfgIdx}}_SERVERID insert indirect nocache httponly
+  {{ else }}
+  cookie OPENSHIFT_EDGE_{{$cfgIdx}}_SERVERID insert indirect nocache httponly secure
+  {{ end }}
                 {{ range $endpointID, $endpoint := $serviceUnit.EndpointTable }}
-  server {{$serviceUnit.TemplateSafeName}} {{$endpoint.IP}}:{{$endpoint.Port}} check inter 5000ms
+  server {{$endpointID}} {{$endpoint.IP}}:{{$endpoint.Port}} check inter 5000ms cookie {{$endpointID}}
                 {{ end }}
             {{ end }}
 
@@ -164,8 +189,10 @@ backend be_edge_http_{{$cfgIdx}}
 backend be_tcp_{{$cfgIdx}}
   balance leastconn
   timeout check 5000ms
+  stick-table type ip size 1m expire 5m{{ if (len $.PeerEndpoints) gt 0 }} peers openshift_peers {{ end }}
+  stick on src
                 {{ range $endpointID, $endpoint := $serviceUnit.EndpointTable }}
-  server {{$serviceUnit.TemplateSafeName}} {{$endpoint.IP}}:{{$endpoint.Port}} check inter 5000ms
+  server {{$endpointID}} {{$endpoint.IP}}:{{$endpoint.Port}} check inter 5000ms
                 {{ end }}
             {{ end }}
 
@@ -174,8 +201,9 @@ backend be_secure_{{$cfgIdx}}
   mode http
   balance leastconn
   timeout check 5000ms
+  cookie OPENSHIFT_REENCRYPT_{{$cfgIdx}}_SERVERID insert indirect nocache httponly secure
                 {{ range $endpointID, $endpoint := $serviceUnit.EndpointTable }}
-  server {{$serviceUnit.TemplateSafeName}} {{$endpoint.IP}}:{{$endpoint.Port}} ssl check inter 5000ms verify required ca-file /var/lib/containers/router/cacerts/{{$cfgIdx}}.pem
+  server {{$endpointID}} {{$endpoint.IP}}:{{$endpoint.Port}} ssl check inter 5000ms verify required ca-file /var/lib/containers/router/cacerts/{{$cfgIdx}}.pem cookie {{$endpointID}}
                 {{ end }}
             {{ end  }}
         {{ end  }}{{/* $serviceUnit.ServiceAliasConfigs*/}}

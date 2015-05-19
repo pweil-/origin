@@ -49,7 +49,7 @@ func (r *TestRouter) AddEndpoints(id string, endpoints []Endpoint) {
 	su, _ := r.FindServiceUnit(id)
 
 	for _, ep := range endpoints {
-		newEndpoint := Endpoint{ep.ID, ep.IP, ep.Port}
+		newEndpoint := Endpoint{ep.ID, ep.IP, ep.Port, "foo"}
 		su.EndpointTable[ep.ID] = newEndpoint
 	}
 

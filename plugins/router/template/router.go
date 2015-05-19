@@ -44,19 +44,29 @@ type templateRouter struct {
 	defaultCertificate string
 	// if the default certificate is populated then this will be filled in so it can be passed to the templates
 	defaultCertificatePath string
+	// peerService provides a namespace/name to check against when receiving endpoint events in order
+	// to track the peers of this router.  This will be used to populate the set of peer ip addresses
+	// that a router can use for talking to other routers controlled by the same service.
+	// NOTE: this should follow the format of the router.endpointsKey that is used to key endpoints
+	peerEndpointsKey string
+	// peerEndpoints will contain an endpoint map of the peers identified by peerEndpointsKey
+	peerEndpoints map[string]Endpoint
 }
 
 // templateConfig is a subset of the templateRouter information that should be passed to the template for generating
 // the correct configuration.
 type templateData struct {
-	//the routes
+	// the routes
 	State map[string]ServiceUnit
-	//full path and file name to the default certificate
+	// full path and file name to the default certificate
 	DefaultCertificate string
+	// peers
+	PeerEndpoints map[string]Endpoint
 }
 
-func newTemplateRouter(templates map[string]*template.Template, reloadScriptPath, defaultCertificate string) (*templateRouter, error) {
+func newTemplateRouter(templates map[string]*template.Template, reloadScriptPath, defaultCertificate string, peerEndpointsKey string) (*templateRouter, error) {
 	glog.Infof("Creating a new template router")
+	glog.Infof("Router will use %s keyed endpoints to identify peers", peerEndpointsKey)
 	certManagerConfig := &certificateManagerConfig{
 		certKeyFunc:     generateCertKey,
 		caCertKeyFunc:   generateCACertKey,
@@ -76,6 +86,8 @@ func newTemplateRouter(templates map[string]*template.Template, reloadScriptPath
 		certManager:            certManager,
 		defaultCertificate:     defaultCertificate,
 		defaultCertificatePath: "",
+		peerEndpointsKey:       peerEndpointsKey,
+		peerEndpoints:          map[string]Endpoint{},
 	}
 	if err := router.writeDefaultCert(); err != nil {
 		return nil, err
@@ -172,7 +184,7 @@ func (r *templateRouter) writeConfig() error {
 			return err
 		}
 
-		err = template.Execute(file, templateData{r.state, r.defaultCertificatePath})
+		err = template.Execute(file, templateData{r.state, r.defaultCertificatePath, r.peerEndpoints})
 		if err != nil {
 			glog.Errorf("Error executing template for file %v: %v", path, err)
 			return err
@@ -243,6 +255,11 @@ func (r *templateRouter) DeleteEndpoints(id string) {
 	service.EndpointTable = make(map[string]Endpoint)
 
 	r.state[id] = service
+
+	if id == r.peerEndpointsKey {
+		r.peerEndpoints = make(map[string]Endpoint)
+		glog.V(4).Infof("Peer endpoint table has been cleared")
+	}
 }
 
 // routeKey generates route key in form of Namespace-Name.  This is NOT the normal key structure of ns/name because
@@ -330,12 +347,17 @@ func (r *templateRouter) AddEndpoints(id string, endpoints []Endpoint) {
 	//only add if it doesn't already exist
 	for _, ep := range endpoints {
 		if _, ok := frontend.EndpointTable[ep.ID]; !ok {
-			newEndpoint := Endpoint{ep.ID, ep.IP, ep.Port}
+			newEndpoint := Endpoint{ep.ID, ep.IP, ep.Port, ep.TargetName}
 			frontend.EndpointTable[ep.ID] = newEndpoint
 		}
 	}
 
 	r.state[id] = frontend
+
+	if id == r.peerEndpointsKey {
+		r.peerEndpoints = frontend.EndpointTable
+		glog.V(4).Infof("Peer endpoints updated to: %#v", r.peerEndpoints)
+	}
 }
 
 // cleanUpServiceAliasConfig performs any necessary steps to clean up a service alias config before deleting it from

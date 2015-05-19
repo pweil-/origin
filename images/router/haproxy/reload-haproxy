@@ -12,8 +12,11 @@ if [ -f $pid_file ]; then
   old_pid=$(<$pid_file)
 fi
 
+# Must match an endpoint target name that is used in the peer section
+peer_name=$HOSTNAME
+
 if [ -n "$old_pid" ]; then
-  /usr/sbin/haproxy -f $config_file -p $pid_file -sf $old_pid
+  /usr/sbin/haproxy -f $config_file -p $pid_file -L $peer_name -sf $old_pid
 else
-  /usr/sbin/haproxy -f $config_file -p $pid_file
+  /usr/sbin/haproxy -f $config_file -p $pid_file -L $peer_name
 fi

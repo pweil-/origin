@@ -228,44 +228,41 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 			"DEFAULT_CERTIFICATE": defaultCert,
 		}
 
-		objects := []runtime.Object{
-			&dapi.DeploymentConfig{
-				ObjectMeta: kapi.ObjectMeta{
-					Name:   name,
-					Labels: label,
+		routerDeploymentCfg := &dapi.DeploymentConfig{
+			ObjectMeta: kapi.ObjectMeta{
+				Name:   name,
+				Labels: label,
+			},
+			Triggers: []dapi.DeploymentTriggerPolicy{
+				{Type: dapi.DeploymentTriggerOnConfigChange},
+			},
+			Template: dapi.DeploymentTemplate{
+				Strategy: dapi.DeploymentStrategy{
+					Type: dapi.DeploymentStrategyTypeRecreate,
 				},
-				Triggers: []dapi.DeploymentTriggerPolicy{
-					{Type: dapi.DeploymentTriggerOnConfigChange},
-				},
-				Template: dapi.DeploymentTemplate{
-					Strategy: dapi.DeploymentStrategy{
-						Type: dapi.DeploymentStrategyTypeRecreate,
-					},
-					ControllerTemplate: kapi.ReplicationControllerSpec{
-						Replicas: cfg.Replicas,
-						Selector: label,
-						Template: &kapi.PodTemplateSpec{
-							ObjectMeta: kapi.ObjectMeta{Labels: label},
-							Spec: kapi.PodSpec{
-								NodeSelector: nodeSelector,
-								Containers: []kapi.Container{
-									{
-										Name:  "router",
-										Image: image,
-										Ports: ports,
-										Env:   env.List(),
-										LivenessProbe: &kapi.Probe{
-											Handler: kapi.Handler{
-												TCPSocket: &kapi.TCPSocketAction{
-													Port: kutil.IntOrString{
-														IntVal: ports[0].ContainerPort,
-													},
+				ControllerTemplate: kapi.ReplicationControllerSpec{
+					Replicas: cfg.Replicas,
+					Selector: label,
+					Template: &kapi.PodTemplateSpec{
+						ObjectMeta: kapi.ObjectMeta{Labels: label},
+						Spec: kapi.PodSpec{
+							NodeSelector: nodeSelector,
+							Containers: []kapi.Container{
+								{
+									Name:  "router",
+									Image: image,
+									Ports: ports,
+									LivenessProbe: &kapi.Probe{
+										Handler: kapi.Handler{
+											TCPSocket: &kapi.TCPSocketAction{
+												Port: kutil.IntOrString{
+													IntVal: ports[0].ContainerPort,
 												},
 											},
-											InitialDelaySeconds: 10,
 										},
-										ImagePullPolicy: kapi.PullIfNotPresent,
+										InitialDelaySeconds: 10,
 									},
+									ImagePullPolicy: kapi.PullIfNotPresent,
 								},
 							},
 						},
@@ -273,7 +270,25 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 				},
 			},
 		}
+
+		objects := []runtime.Object{routerDeploymentCfg}
 		objects = app.AddServices(objects)
+
+		// get the service name that is created for the router and add it to the environment
+		// then set the env on the pod spec
+		svcName, err := getServiceNameFromObjects(objects)
+		if err != nil {
+			return fmt.Errorf("Unable to get service name from generated service: %v", err)
+		}
+		svcNamespace, err := f.DefaultNamespace()
+		if err != nil {
+			return fmt.Errorf("Unable to get default namespace from factory: %v", err)
+		}
+		env["ROUTER_SERVICE_NAME"] = svcName
+		env["ROUTER_SERVICE_NAMESPACE"] = svcNamespace
+		routerDeploymentCfg.Template.ControllerTemplate.Template.Spec.Containers[0].Env = env.List()
+		objects[0] = routerDeploymentCfg
+
 		// TODO: label all created objects with the same label - router=<name>
 		list := &kapi.List{Items: objects}
 
@@ -300,4 +315,20 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 
 	fmt.Fprintf(out, "Router %q service exists\n", name)
 	return nil
+}
+
+// getServiceNameFromObjects operates on the assumption that there will only be a single service
+// in the list of objects that it can use to give back a namespace and name to be used in the
+// router's environment if it needs to reference its peers
+func getServiceNameFromObjects(objects []runtime.Object) (string, error) {
+	for _, obj := range objects {
+		switch t := obj.(type) {
+		case *kapi.Service:
+			if len(t.GenerateName) > 0 {
+				return "", fmt.Errorf("Using a generated name is not valid for the osadm router command")
+			}
+			return t.Name, nil
+		}
+	}
+	return "", nil
 }
