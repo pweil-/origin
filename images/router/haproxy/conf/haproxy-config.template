@@ -45,6 +45,20 @@ frontend public
 
   default_backend openshift_default
 
+frontend custom
+    bind :1083
+    mode http
+    tcp-request inspect-delay 5s
+    tcp-request content accept if HTTP
+
+    # map to http backend
+    use_backend be_http_%[base,map_beg(/var/lib/haproxy/conf/os_http_be.map)]
+
+    # if a specific path based lookup was not found then revert to a host header lookup
+    use_backend be_http_%[hdr(host),map_beg(/var/lib/haproxy/conf/os_http_be.map)] if TRUE
+
+    default_backend openshift_default
+
 # public ssl accepts all connections and isn't checking certificates yet certificates to use will be
 # determined by the next backend in the chain which may be an app backend (passthrough termination) or a backend
 # that terminates encryption in this router (edge)
