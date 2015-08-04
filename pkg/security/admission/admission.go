@@ -15,7 +15,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	scc "github.com/GoogleCloudPlatform/kubernetes/pkg/securitycontextconstraints"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/serviceaccount"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/controller/serviceaccount"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 

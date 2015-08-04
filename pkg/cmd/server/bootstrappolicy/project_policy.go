@@ -2,7 +2,7 @@ package bootstrappolicy
 
 import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/serviceaccount"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/controller/serviceaccount"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"

@@ -10,7 +10,7 @@ import (
 	kapp "github.com/GoogleCloudPlatform/kubernetes/cmd/kube-apiserver/app"
 	cmapp "github.com/GoogleCloudPlatform/kubernetes/cmd/kube-controller-manager/app"
 	kvalidation "github.com/GoogleCloudPlatform/kubernetes/pkg/api/validation"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/serviceaccount"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/controller/serviceaccount"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 

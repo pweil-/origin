@@ -16,7 +16,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/master"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/serviceaccount"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/controller/serviceaccount"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	kutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 

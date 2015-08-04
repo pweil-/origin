@@ -12,7 +12,7 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/service/allocator"
 	etcdallocator "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/service/allocator/etcd"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/serviceaccount"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/controller/serviceaccount"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	serviceaccountadmission "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/serviceaccount"
 
