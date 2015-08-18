@@ -69,8 +69,6 @@ func init() {
 		&ComponentStatusList{},
 		&SerializedReference{},
 		&RangeAllocation{},
-		&SecurityContextConstraints{},
-		&SecurityContextConstraintsList{},
 	)
 	// Legacy names are supported
 	Scheme.AddKnownTypeWithName("", "Minion", &Node{})
@@ -121,5 +119,3 @@ func (*ComponentStatus) IsAnAPIObject()                {}
 func (*ComponentStatusList) IsAnAPIObject()            {}
 func (*SerializedReference) IsAnAPIObject()            {}
 func (*RangeAllocation) IsAnAPIObject()                {}
-func (*SecurityContextConstraints) IsAnAPIObject()     {}
-func (*SecurityContextConstraintsList) IsAnAPIObject() {}

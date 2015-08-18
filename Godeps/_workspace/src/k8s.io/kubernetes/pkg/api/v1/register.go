@@ -84,8 +84,6 @@ func addKnownTypes() {
 		&ComponentStatusList{},
 		&SerializedReference{},
 		&RangeAllocation{},
-		&SecurityContextConstraints{},
-		&SecurityContextConstraintsList{},
 	)
 	// Legacy names are supported
 	api.Scheme.AddKnownTypeWithName("v1", "Minion", &Node{})
@@ -136,5 +134,4 @@ func (*ComponentStatus) IsAnAPIObject()                {}
 func (*ComponentStatusList) IsAnAPIObject()            {}
 func (*SerializedReference) IsAnAPIObject()            {}
 func (*RangeAllocation) IsAnAPIObject()                {}
-func (*SecurityContextConstraints) IsAnAPIObject()     {}
-func (*SecurityContextConstraintsList) IsAnAPIObject() {}
+
