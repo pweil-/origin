@@ -19,25 +19,27 @@ package etcd
 import (
 	"testing"
 
-	"k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/rest/resttest"
-	"k8s.io/kubernetes/pkg/api/testapi"
 	"k8s.io/kubernetes/pkg/storage"
 	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
 	"k8s.io/kubernetes/pkg/tools"
 	"k8s.io/kubernetes/pkg/tools/etcdtest"
+
+	"github.com/openshift/origin/pkg/api/latest"
+	"github.com/openshift/origin/pkg/security/scc/api"
 )
 
 func newEtcdStorage(t *testing.T) (*tools.FakeEtcdClient, storage.Interface) {
 	fakeEtcdClient := tools.NewFakeEtcdClient(t)
 	fakeEtcdClient.TestIndex = true
-	etcdStorage := etcdstorage.NewEtcdStorage(fakeEtcdClient, testapi.Codec(), etcdtest.PathPrefix())
+	etcdStorage := etcdstorage.NewEtcdStorage(fakeEtcdClient, latest.Codec, etcdtest.PathPrefix())
 	return fakeEtcdClient, etcdStorage
 }
 
 func validNewSecurityContextConstraints(name string) *api.SecurityContextConstraints {
 	return &api.SecurityContextConstraints{
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: kapi.ObjectMeta{
 			Name: name,
 		},
 		SELinuxContext: api.SELinuxContextStrategyOptions{
@@ -54,13 +56,13 @@ func TestCreate(t *testing.T) {
 	storage := NewStorage(etcdStorage)
 	test := resttest.New(t, storage, fakeEtcdClient.SetError).ClusterScope()
 	scc := validNewSecurityContextConstraints("foo")
-	scc.ObjectMeta = api.ObjectMeta{GenerateName: "foo-"}
+	scc.ObjectMeta = kapi.ObjectMeta{GenerateName: "foo-"}
 	test.TestCreate(
 		// valid
 		scc,
 		// invalid
 		&api.SecurityContextConstraints{
-			ObjectMeta: api.ObjectMeta{Name: "name with spaces"},
+			ObjectMeta: kapi.ObjectMeta{Name: "name with spaces"},
 		},
 	)
 }
@@ -75,7 +77,7 @@ func TestUpdate(t *testing.T) {
 	fakeEtcdClient.ChangeIndex = 2
 	scc := validNewSecurityContextConstraints("foo")
 	existing := validNewSecurityContextConstraints("exists")
-	obj, err := storage.Create(api.NewDefaultContext(), existing)
+	obj, err := storage.Create(kapi.NewDefaultContext(), existing)
 	if err != nil {
 		t.Fatalf("unable to create object: %v", err)
 	}

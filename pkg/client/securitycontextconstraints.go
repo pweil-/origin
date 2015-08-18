@@ -17,10 +17,11 @@ limitations under the License.
 package client
 
 import (
-	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/watch"
+
+	"github.com/openshift/origin/pkg/security/scc/api"
 )
 
 type SecurityContextConstraintsInterface interface {

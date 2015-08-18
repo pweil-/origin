@@ -138,6 +138,8 @@ func init() {
 		"ClusterNetwork": true,
 		"HostSubnet":     true,
 		"NetNamespace":   true,
+
+		"SecurityContextConstraints": true,
 	}
 
 	// enumerate all supported versions, get the kinds, and register with the mapper how to address our resources
