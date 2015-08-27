@@ -16,6 +16,8 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/rest"
+	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
+	kapiv1beta3 "k8s.io/kubernetes/pkg/api/v1beta3"
 	"k8s.io/kubernetes/pkg/apiserver"
 	kclient "k8s.io/kubernetes/pkg/client"
 	kmaster "k8s.io/kubernetes/pkg/master"
@@ -90,6 +92,8 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	routeplugin "github.com/openshift/origin/plugins/route/allocation/simple"
 
+	sccapiv1 "github.com/openshift/origin/pkg/security/scc/api/v1"
+	sccapiv1beta3 "github.com/openshift/origin/pkg/security/scc/api/v1beta3"
 	sccetcd "github.com/openshift/origin/pkg/security/scc/registry/etcd"
 )
 
@@ -269,6 +273,8 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 	messages := []string{}
 	legacyAPIVersions := []string{}
 	currentAPIVersions := []string{}
+
+	c.installDeprecatedKubernetesAPI(storage, container)
 
 	if configapi.HasOpenShiftAPILevel(c.Options, OpenShiftAPIV1Beta3) {
 		if err := c.api_v1beta3(storage).InstallREST(container); err != nil {
@@ -569,6 +575,63 @@ func (c *MasterConfig) defaultAPIGroupVersion() *apiserver.APIGroupVersion {
 		Admit:   c.AdmissionControl,
 		Context: c.getRequestContextMapper(),
 	}
+}
+
+func (c *MasterConfig) installDeprecatedKubernetesAPI(osStorage map[string]rest.Storage, container *restful.Container) error {
+	storage := make(map[string]rest.Storage)
+	storage["securitycontextconstraints"] = osStorage["securityContextConstraints"]
+
+	if configapi.HasKubernetesAPILevel(*c.Options.KubernetesMasterConfig, "v1beta3") {
+		//register the type
+		kapi.Scheme.AddKnownTypes("v1beta3", &sccapiv1beta3.SecurityContextConstraints{})
+		kapi.Scheme.AddKnownTypes("v1beta3", &sccapiv1beta3.SecurityContextConstraintsList{})
+
+		//install the rest storage
+		version := c.defaultAPIGroupVersion()
+		version.Root = KubernetesAPIPrefix
+		version.Storage = storage
+		version.Version = "v1beta3"
+		version.Codec = kapiv1beta3.Codec
+
+		if err := installDeprecatedAPI(container, version); err != nil {
+			return err
+		}
+	}
+	if configapi.HasKubernetesAPILevel(*c.Options.KubernetesMasterConfig, "v1") {
+		//register the type
+		kapi.Scheme.AddKnownTypes("v1", &sccapiv1.SecurityContextConstraints{})
+		kapi.Scheme.AddKnownTypes("v1", &sccapiv1.SecurityContextConstraintsList{})
+
+		//install the rest storage
+		version := c.defaultAPIGroupVersion()
+		version.Root = KubernetesAPIPrefix
+		version.Storage = storage
+		version.Version = "v1"
+		version.Codec = kapiv1.Codec
+
+		if err := installDeprecatedAPI(container, version); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func installDeprecatedAPI(container *restful.Container, version *apiserver.APIGroupVersion) error {
+	ws := getWebServiceForAPIVersion(container, version)
+	if ws == nil {
+		return fmt.Errorf("unable to find the existing webservice for api version %v while registering deprecated APIs", version.Version)
+	}
+	return version.InstallRESTToExistingWebService(ws)
+}
+
+func getWebServiceForAPIVersion(container *restful.Container, version *apiserver.APIGroupVersion) *restful.WebService {
+	for _, ws := range container.RegisteredWebServices() {
+		if ws.Version() == version.Version {
+			return ws
+		}
+	}
+	return nil
 }
 
 // api_v1beta3 returns the resources and codec for API version v1beta3.

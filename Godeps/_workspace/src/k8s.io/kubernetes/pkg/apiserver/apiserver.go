@@ -129,6 +129,21 @@ func (g *APIGroupVersion) InstallREST(container *restful.Container) error {
 	return errors.NewAggregate(registrationErrors)
 }
 
+func (g *APIGroupVersion) InstallRESTToExistingWebService(ws *restful.WebService) error {
+	info := &APIRequestInfoResolver{util.NewStringSet(strings.TrimPrefix(g.Root, "/")), g.Mapper}
+
+	prefix := path.Join(g.Root, g.Version)
+	installer := &APIInstaller{
+		group:             g,
+		info:              info,
+		prefix:            prefix,
+		minRequestTimeout: g.MinRequestTimeout,
+		proxyDialerFn:     g.ProxyDialerFn,
+	}
+	_, registrationErrors := installer.InstallToExistingWebService(ws)
+	return errors.NewAggregate(registrationErrors)
+}
+
 // TODO: document all handlers
 // InstallSupport registers the APIServer support functions
 func InstallSupport(mux Mux, ws *restful.WebService, enableResettingMetrics bool, checks ...healthz.HealthzChecker) {

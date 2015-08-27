@@ -57,11 +57,13 @@ var errEmptyName = errors.NewBadRequest("name must be provided")
 
 // Installs handlers for API resources.
 func (a *APIInstaller) Install() (ws *restful.WebService, errors []error) {
-	errors = make([]error, 0)
-
 	// Create the WebService.
 	ws = a.newWebService()
+	return a.InstallToExistingWebService(ws)
+}
 
+func (a *APIInstaller) InstallToExistingWebService(ws *restful.WebService) (*restful.WebService, []error) {
+	errs := make([]error, 0)
 	proxyHandler := (&ProxyHandler{a.prefix + "/proxy/", a.group.Storage, a.group.Codec, a.group.Context, a.info, a.proxyDialerFn})
 
 	// Register the paths in a deterministic (sorted) order to get a deterministic swagger spec.
@@ -74,10 +76,10 @@ func (a *APIInstaller) Install() (ws *restful.WebService, errors []error) {
 	sort.Strings(paths)
 	for _, path := range paths {
 		if err := a.registerResourceHandlers(path, a.group.Storage[path], ws, proxyHandler); err != nil {
-			errors = append(errors, err)
+			errs = append(errs, err)
 		}
 	}
-	return ws, errors
+	return ws, errs
 }
 
 func (a *APIInstaller) newWebService() *restful.WebService {
