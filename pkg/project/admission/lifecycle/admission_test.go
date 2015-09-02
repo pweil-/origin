@@ -7,6 +7,7 @@ import (
 
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
+	klatest "k8s.io/kubernetes/pkg/api/latest"
 	kclient "k8s.io/kubernetes/pkg/client"
 	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/client/testclient"
@@ -150,6 +151,7 @@ func TestCreatesAllowedDuringNamespaceDeletion(t *testing.T) {
 		KubeletClientConfig: &kclient.KubeletConfig{},
 		EtcdHelper:          etcdstorage.NewEtcdStorage(nil, nil, ""),
 	}
+	config.Options.EtcdStorageConfig.KubernetesStorageVersion = klatest.Version
 	storageMap := config.GetRestStorage()
 	resources := util.StringSet{}
 

@@ -10,7 +10,7 @@ import (
 	projectapiv1beta3 "github.com/openshift/origin/pkg/project/api/v1beta3"
 	routeapiv1beta3 "github.com/openshift/origin/pkg/route/api/v1beta3"
 	sdnapiv1beta3 "github.com/openshift/origin/pkg/sdn/api/v1beta3"
-	sccapiv1beta3 "github.com/openshift/origin/pkg/security/scc/api/v1beta3"
+	policyapiv1beta3 "github.com/openshift/origin/pkg/security/policy/api/v1beta3"
 	templateapiv1beta3 "github.com/openshift/origin/pkg/template/api/v1beta3"
 	userapiv1beta3 "github.com/openshift/origin/pkg/user/api/v1beta3"
 	api "k8s.io/kubernetes/pkg/api"
@@ -2220,44 +2220,7 @@ func deepCopy_v1beta3_NetNamespaceList(in sdnapiv1beta3.NetNamespaceList, out *s
 	return nil
 }
 
-func deepCopy_v1beta3_RunAsUserStrategyOptions(in sccapiv1beta3.RunAsUserStrategyOptions, out *sccapiv1beta3.RunAsUserStrategyOptions, c *conversion.Cloner) error {
-	out.Type = in.Type
-	if in.UID != nil {
-		out.UID = new(int64)
-		*out.UID = *in.UID
-	} else {
-		out.UID = nil
-	}
-	if in.UIDRangeMin != nil {
-		out.UIDRangeMin = new(int64)
-		*out.UIDRangeMin = *in.UIDRangeMin
-	} else {
-		out.UIDRangeMin = nil
-	}
-	if in.UIDRangeMax != nil {
-		out.UIDRangeMax = new(int64)
-		*out.UIDRangeMax = *in.UIDRangeMax
-	} else {
-		out.UIDRangeMax = nil
-	}
-	return nil
-}
-
-func deepCopy_v1beta3_SELinuxContextStrategyOptions(in sccapiv1beta3.SELinuxContextStrategyOptions, out *sccapiv1beta3.SELinuxContextStrategyOptions, c *conversion.Cloner) error {
-	out.Type = in.Type
-	if in.SELinuxOptions != nil {
-		if newVal, err := c.DeepCopy(in.SELinuxOptions); err != nil {
-			return err
-		} else {
-			out.SELinuxOptions = newVal.(*pkgapiv1beta3.SELinuxOptions)
-		}
-	} else {
-		out.SELinuxOptions = nil
-	}
-	return nil
-}
-
-func deepCopy_v1beta3_SecurityContextConstraints(in sccapiv1beta3.SecurityContextConstraints, out *sccapiv1beta3.SecurityContextConstraints, c *conversion.Cloner) error {
+func deepCopy_v1beta3_PodSecurityPolicy(in policyapiv1beta3.PodSecurityPolicy, out *policyapiv1beta3.PodSecurityPolicy, c *conversion.Cloner) error {
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
@@ -2305,7 +2268,7 @@ func deepCopy_v1beta3_SecurityContextConstraints(in sccapiv1beta3.SecurityContex
 	return nil
 }
 
-func deepCopy_v1beta3_SecurityContextConstraintsList(in sccapiv1beta3.SecurityContextConstraintsList, out *sccapiv1beta3.SecurityContextConstraintsList, c *conversion.Cloner) error {
+func deepCopy_v1beta3_PodSecurityPolicyList(in policyapiv1beta3.PodSecurityPolicyList, out *policyapiv1beta3.PodSecurityPolicyList, c *conversion.Cloner) error {
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
@@ -2317,14 +2280,51 @@ func deepCopy_v1beta3_SecurityContextConstraintsList(in sccapiv1beta3.SecurityCo
 		out.ListMeta = newVal.(pkgapiv1beta3.ListMeta)
 	}
 	if in.Items != nil {
-		out.Items = make([]sccapiv1beta3.SecurityContextConstraints, len(in.Items))
+		out.Items = make([]policyapiv1beta3.PodSecurityPolicy, len(in.Items))
 		for i := range in.Items {
-			if err := deepCopy_v1beta3_SecurityContextConstraints(in.Items[i], &out.Items[i], c); err != nil {
+			if err := deepCopy_v1beta3_PodSecurityPolicy(in.Items[i], &out.Items[i], c); err != nil {
 				return err
 			}
 		}
 	} else {
 		out.Items = nil
+	}
+	return nil
+}
+
+func deepCopy_v1beta3_RunAsUserStrategyOptions(in policyapiv1beta3.RunAsUserStrategyOptions, out *policyapiv1beta3.RunAsUserStrategyOptions, c *conversion.Cloner) error {
+	out.Type = in.Type
+	if in.UID != nil {
+		out.UID = new(int64)
+		*out.UID = *in.UID
+	} else {
+		out.UID = nil
+	}
+	if in.UIDRangeMin != nil {
+		out.UIDRangeMin = new(int64)
+		*out.UIDRangeMin = *in.UIDRangeMin
+	} else {
+		out.UIDRangeMin = nil
+	}
+	if in.UIDRangeMax != nil {
+		out.UIDRangeMax = new(int64)
+		*out.UIDRangeMax = *in.UIDRangeMax
+	} else {
+		out.UIDRangeMax = nil
+	}
+	return nil
+}
+
+func deepCopy_v1beta3_SELinuxContextStrategyOptions(in policyapiv1beta3.SELinuxContextStrategyOptions, out *policyapiv1beta3.SELinuxContextStrategyOptions, c *conversion.Cloner) error {
+	out.Type = in.Type
+	if in.SELinuxOptions != nil {
+		if newVal, err := c.DeepCopy(in.SELinuxOptions); err != nil {
+			return err
+		} else {
+			out.SELinuxOptions = newVal.(*pkgapiv1beta3.SELinuxOptions)
+		}
+	} else {
+		out.SELinuxOptions = nil
 	}
 	return nil
 }
@@ -2694,10 +2694,10 @@ func init() {
 		deepCopy_v1beta3_HostSubnetList,
 		deepCopy_v1beta3_NetNamespace,
 		deepCopy_v1beta3_NetNamespaceList,
+		deepCopy_v1beta3_PodSecurityPolicy,
+		deepCopy_v1beta3_PodSecurityPolicyList,
 		deepCopy_v1beta3_RunAsUserStrategyOptions,
 		deepCopy_v1beta3_SELinuxContextStrategyOptions,
-		deepCopy_v1beta3_SecurityContextConstraints,
-		deepCopy_v1beta3_SecurityContextConstraintsList,
 		deepCopy_v1beta3_Parameter,
 		deepCopy_v1beta3_Template,
 		deepCopy_v1beta3_TemplateList,

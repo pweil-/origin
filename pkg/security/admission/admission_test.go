@@ -14,8 +14,8 @@ import (
 	"k8s.io/kubernetes/pkg/util"
 
 	allocator "github.com/openshift/origin/pkg/security"
-	sccapi "github.com/openshift/origin/pkg/security/scc/api"
-	sccprovider "github.com/openshift/origin/pkg/security/scc/provider"
+	sccapi "github.com/openshift/origin/pkg/security/policy/api"
+	sccprovider "github.com/openshift/origin/pkg/security/policy/provider"
 )
 
 func NewTestAdmission(store cache.Store, kclient client.Interface) kadmission.Interface {
@@ -46,7 +46,7 @@ func TestAdmit(t *testing.T) {
 	tc := testclient.NewSimpleFake(namespace, serviceAccount)
 
 	// create scc that requires allocation retrieval
-	saSCC := &sccapi.SecurityContextConstraints{
+	saSCC := &sccapi.PodSecurityPolicy{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "scc-sa",
 		},
@@ -61,7 +61,7 @@ func TestAdmit(t *testing.T) {
 	// create scc that has specific requirements that shouldn't match but is permissioned to
 	// service accounts to test exact matches
 	var exactUID int64 = 999
-	saExactSCC := &sccapi.SecurityContextConstraints{
+	saExactSCC := &sccapi.PodSecurityPolicy{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "scc-sa-exact",
 		},
@@ -202,7 +202,7 @@ func TestAdmit(t *testing.T) {
 
 	// now add an escalated scc to the group and re-run the cases that expected failure, they should
 	// now pass by validating against the escalated scc.
-	adminSCC := &sccapi.SecurityContextConstraints{
+	adminSCC := &sccapi.PodSecurityPolicy{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "scc-admin",
 		},
@@ -241,7 +241,7 @@ func TestAssignSecurityContext(t *testing.T) {
 	// set up test data
 	// scc that will deny privileged container requests and has a default value for a field (uid)
 	var uid int64 = 9999
-	scc := &sccapi.SecurityContextConstraints{
+	scc := &sccapi.PodSecurityPolicy{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "test scc",
 		},
@@ -362,13 +362,13 @@ func TestCreateProvidersFromConstraints(t *testing.T) {
 
 	testCases := map[string]struct {
 		// use a generating function so we can test for non-mutation
-		scc         func() *sccapi.SecurityContextConstraints
+		scc         func() *sccapi.PodSecurityPolicy
 		namespace   *kapi.Namespace
 		expectedErr string
 	}{
 		"valid non-preallocated scc": {
-			scc: func() *sccapi.SecurityContextConstraints {
-				return &sccapi.SecurityContextConstraints{
+			scc: func() *sccapi.PodSecurityPolicy {
+				return &sccapi.PodSecurityPolicy{
 					ObjectMeta: kapi.ObjectMeta{
 						Name: "valid non-preallocated scc",
 					},
@@ -383,8 +383,8 @@ func TestCreateProvidersFromConstraints(t *testing.T) {
 			namespace: namespaceValid,
 		},
 		"valid pre-allocated scc": {
-			scc: func() *sccapi.SecurityContextConstraints {
-				return &sccapi.SecurityContextConstraints{
+			scc: func() *sccapi.PodSecurityPolicy {
+				return &sccapi.PodSecurityPolicy{
 					ObjectMeta: kapi.ObjectMeta{
 						Name: "valid pre-allocated scc",
 					},
@@ -400,8 +400,8 @@ func TestCreateProvidersFromConstraints(t *testing.T) {
 			namespace: namespaceValid,
 		},
 		"pre-allocated no uid annotation": {
-			scc: func() *sccapi.SecurityContextConstraints {
-				return &sccapi.SecurityContextConstraints{
+			scc: func() *sccapi.PodSecurityPolicy {
+				return &sccapi.PodSecurityPolicy{
 					ObjectMeta: kapi.ObjectMeta{
 						Name: "pre-allocated no uid annotation",
 					},
@@ -417,8 +417,8 @@ func TestCreateProvidersFromConstraints(t *testing.T) {
 			expectedErr: "unable to find pre-allocated uid annotation",
 		},
 		"pre-allocated no mcs annotation": {
-			scc: func() *sccapi.SecurityContextConstraints {
-				return &sccapi.SecurityContextConstraints{
+			scc: func() *sccapi.PodSecurityPolicy {
+				return &sccapi.PodSecurityPolicy{
 					ObjectMeta: kapi.ObjectMeta{
 						Name: "pre-allocated no mcs annotation",
 					},
@@ -434,8 +434,8 @@ func TestCreateProvidersFromConstraints(t *testing.T) {
 			expectedErr: "unable to find pre-allocated mcs annotation",
 		},
 		"bad scc strategy options": {
-			scc: func() *sccapi.SecurityContextConstraints {
-				return &sccapi.SecurityContextConstraints{
+			scc: func() *sccapi.PodSecurityPolicy {
+				return &sccapi.PodSecurityPolicy{
 					ObjectMeta: kapi.ObjectMeta{
 						Name: "bad scc user options",
 					},
@@ -467,7 +467,7 @@ func TestCreateProvidersFromConstraints(t *testing.T) {
 
 		// create the providers, this method only needs the namespace
 		attributes := kadmission.NewAttributesRecord(nil, "", v.namespace.Name, "", "", "", kadmission.Create, nil)
-		_, errs := admit.createProvidersFromConstraints(attributes.GetNamespace(), []*sccapi.SecurityContextConstraints{scc})
+		_, errs := admit.createProvidersFromConstraints(attributes.GetNamespace(), []*sccapi.PodSecurityPolicy{scc})
 
 		if !reflect.DeepEqual(scc, v.scc()) {
 			diff := util.ObjectDiff(scc, v.scc())
@@ -492,7 +492,7 @@ func TestCreateProvidersFromConstraints(t *testing.T) {
 }
 
 func TestMatchingSecurityContextConstraints(t *testing.T) {
-	sccs := []*sccapi.SecurityContextConstraints{
+	sccs := []*sccapi.PodSecurityPolicy{
 		{
 			ObjectMeta: kapi.ObjectMeta{
 				Name: "match group",
@@ -578,32 +578,32 @@ func TestRequiresPreAllocatedUIDRange(t *testing.T) {
 	var uid int64 = 1
 
 	testCases := map[string]struct {
-		scc      *sccapi.SecurityContextConstraints
+		scc      *sccapi.PodSecurityPolicy
 		requires bool
 	}{
 		"must run as": {
-			scc: &sccapi.SecurityContextConstraints{
+			scc: &sccapi.PodSecurityPolicy{
 				RunAsUser: sccapi.RunAsUserStrategyOptions{
 					Type: sccapi.RunAsUserStrategyMustRunAs,
 				},
 			},
 		},
 		"run as any": {
-			scc: &sccapi.SecurityContextConstraints{
+			scc: &sccapi.PodSecurityPolicy{
 				RunAsUser: sccapi.RunAsUserStrategyOptions{
 					Type: sccapi.RunAsUserStrategyRunAsAny,
 				},
 			},
 		},
 		"run as non-root": {
-			scc: &sccapi.SecurityContextConstraints{
+			scc: &sccapi.PodSecurityPolicy{
 				RunAsUser: sccapi.RunAsUserStrategyOptions{
 					Type: sccapi.RunAsUserStrategyMustRunAsNonRoot,
 				},
 			},
 		},
 		"run as range": {
-			scc: &sccapi.SecurityContextConstraints{
+			scc: &sccapi.PodSecurityPolicy{
 				RunAsUser: sccapi.RunAsUserStrategyOptions{
 					Type: sccapi.RunAsUserStrategyMustRunAsRange,
 				},
@@ -611,7 +611,7 @@ func TestRequiresPreAllocatedUIDRange(t *testing.T) {
 			requires: true,
 		},
 		"run as range with specified params": {
-			scc: &sccapi.SecurityContextConstraints{
+			scc: &sccapi.PodSecurityPolicy{
 				RunAsUser: sccapi.RunAsUserStrategyOptions{
 					Type:        sccapi.RunAsUserStrategyMustRunAsRange,
 					UIDRangeMin: &uid,
@@ -631,11 +631,11 @@ func TestRequiresPreAllocatedUIDRange(t *testing.T) {
 
 func TestRequiresPreAllocatedSELinuxLevel(t *testing.T) {
 	testCases := map[string]struct {
-		scc      *sccapi.SecurityContextConstraints
+		scc      *sccapi.PodSecurityPolicy
 		requires bool
 	}{
 		"must run as": {
-			scc: &sccapi.SecurityContextConstraints{
+			scc: &sccapi.PodSecurityPolicy{
 				SELinuxContext: sccapi.SELinuxContextStrategyOptions{
 					Type: sccapi.SELinuxStrategyMustRunAs,
 				},
@@ -643,7 +643,7 @@ func TestRequiresPreAllocatedSELinuxLevel(t *testing.T) {
 			requires: true,
 		},
 		"must with level specified": {
-			scc: &sccapi.SecurityContextConstraints{
+			scc: &sccapi.PodSecurityPolicy{
 				SELinuxContext: sccapi.SELinuxContextStrategyOptions{
 					Type: sccapi.SELinuxStrategyMustRunAs,
 					SELinuxOptions: &kapi.SELinuxOptions{
@@ -653,7 +653,7 @@ func TestRequiresPreAllocatedSELinuxLevel(t *testing.T) {
 			},
 		},
 		"run as any": {
-			scc: &sccapi.SecurityContextConstraints{
+			scc: &sccapi.PodSecurityPolicy{
 				SELinuxContext: sccapi.SELinuxContextStrategyOptions{
 					Type: sccapi.SELinuxStrategyRunAsAny,
 				},
@@ -670,7 +670,7 @@ func TestRequiresPreAllocatedSELinuxLevel(t *testing.T) {
 }
 
 func TestDeduplicateSecurityContextConstraints(t *testing.T) {
-	duped := []*sccapi.SecurityContextConstraints{
+	duped := []*sccapi.PodSecurityPolicy{
 		{ObjectMeta: kapi.ObjectMeta{Name: "a"}},
 		{ObjectMeta: kapi.ObjectMeta{Name: "a"}},
 		{ObjectMeta: kapi.ObjectMeta{Name: "b"}},

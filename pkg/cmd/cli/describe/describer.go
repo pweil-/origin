@@ -33,30 +33,30 @@ import (
 
 func describerMap(c *client.Client, kclient kclient.Interface, host string) map[string]kctl.Describer {
 	m := map[string]kctl.Describer{
-		"Build":                      &BuildDescriber{c, kclient},
-		"BuildConfig":                &BuildConfigDescriber{c, host},
-		"BuildLog":                   &BuildLogDescriber{c},
-		"DeploymentConfig":           NewDeploymentConfigDescriber(c, kclient),
-		"Identity":                   &IdentityDescriber{c},
-		"Image":                      &ImageDescriber{c},
-		"ImageStream":                &ImageStreamDescriber{c},
-		"ImageStreamTag":             &ImageStreamTagDescriber{c},
-		"ImageStreamImage":           &ImageStreamImageDescriber{c},
-		"Route":                      &RouteDescriber{c},
-		"Project":                    &ProjectDescriber{c, kclient},
-		"Template":                   &TemplateDescriber{c, meta.NewAccessor(), kapi.Scheme, nil},
-		"Policy":                     &PolicyDescriber{c},
-		"PolicyBinding":              &PolicyBindingDescriber{c},
-		"RoleBinding":                &RoleBindingDescriber{c},
-		"Role":                       &RoleDescriber{c},
-		"ClusterPolicy":              &ClusterPolicyDescriber{c},
-		"ClusterPolicyBinding":       &ClusterPolicyBindingDescriber{c},
-		"ClusterRoleBinding":         &ClusterRoleBindingDescriber{c},
-		"ClusterRole":                &ClusterRoleDescriber{c},
-		"User":                       &UserDescriber{c},
-		"Group":                      &GroupDescriber{c.Groups()},
-		"UserIdentityMapping":        &UserIdentityMappingDescriber{c},
-		"SecurityContextConstraints": &SecurityContextConstraintsDescriber{c},
+		"Build":                &BuildDescriber{c, kclient},
+		"BuildConfig":          &BuildConfigDescriber{c, host},
+		"BuildLog":             &BuildLogDescriber{c},
+		"DeploymentConfig":     NewDeploymentConfigDescriber(c, kclient),
+		"Identity":             &IdentityDescriber{c},
+		"Image":                &ImageDescriber{c},
+		"ImageStream":          &ImageStreamDescriber{c},
+		"ImageStreamTag":       &ImageStreamTagDescriber{c},
+		"ImageStreamImage":     &ImageStreamImageDescriber{c},
+		"Route":                &RouteDescriber{c},
+		"Project":              &ProjectDescriber{c, kclient},
+		"Template":             &TemplateDescriber{c, meta.NewAccessor(), kapi.Scheme, nil},
+		"Policy":               &PolicyDescriber{c},
+		"PolicyBinding":        &PolicyBindingDescriber{c},
+		"RoleBinding":          &RoleBindingDescriber{c},
+		"Role":                 &RoleDescriber{c},
+		"ClusterPolicy":        &ClusterPolicyDescriber{c},
+		"ClusterPolicyBinding": &ClusterPolicyBindingDescriber{c},
+		"ClusterRoleBinding":   &ClusterRoleBindingDescriber{c},
+		"ClusterRole":          &ClusterRoleDescriber{c},
+		"User":                 &UserDescriber{c},
+		"Group":                &GroupDescriber{c.Groups()},
+		"UserIdentityMapping":  &UserIdentityMappingDescriber{c},
+		"PodSecurityPolicy":    &PodSecurityPolicyDescriber{c},
 	}
 	return m
 }
@@ -510,12 +510,12 @@ func (d *ImageStreamDescriber) Describe(namespace, name string) (string, error) 
 	})
 }
 
-type SecurityContextConstraintsDescriber struct {
+type PodSecurityPolicyDescriber struct {
 	client.Interface
 }
 
-func (d *SecurityContextConstraintsDescriber) Describe(namespace, name string) (string, error) {
-	scc, err := d.SecurityContextConstraints().Get(name)
+func (d *PodSecurityPolicyDescriber) Describe(namespace, name string) (string, error) {
+	scc, err := d.PodSecurityPolicies().Get(name)
 	if err != nil {
 		return "", err
 	}

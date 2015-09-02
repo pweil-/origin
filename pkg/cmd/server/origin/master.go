@@ -92,9 +92,8 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	routeplugin "github.com/openshift/origin/plugins/route/allocation/simple"
 
-	sccapiv1 "github.com/openshift/origin/pkg/security/scc/api/v1"
-	sccapiv1beta3 "github.com/openshift/origin/pkg/security/scc/api/v1beta3"
-	sccetcd "github.com/openshift/origin/pkg/security/scc/registry/etcd"
+	pspetcd "github.com/openshift/origin/pkg/security/policy/registry/podsecuritypolicy/etcd"
+	sccstorage "github.com/openshift/origin/pkg/security/policy/registry/securitycontextconstraint"
 )
 
 const (
@@ -256,8 +255,8 @@ func (c *MasterConfig) serve(handler http.Handler, extra []string) {
 func (c *MasterConfig) InitializeObjects() {
 	// Create required policy rules if needed
 	c.ensureComponentAuthorizationRules()
-	// Ensure the default SCCs are created
-	c.ensureDefaultSecurityContextConstraints()
+	// Ensure the default PodSecurityPolicies are created
+	c.ensureDefaultPodSecurityPolicy()
 	// Bind default roles for service accounts in the default namespace if needed
 	c.ensureDefaultNamespaceServiceAccountRoles()
 	// Create the infra namespace
@@ -274,8 +273,6 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 	legacyAPIVersions := []string{}
 	currentAPIVersions := []string{}
 
-	c.installDeprecatedKubernetesAPI(storage, container)
-
 	if configapi.HasOpenShiftAPILevel(c.Options, OpenShiftAPIV1Beta3) {
 		if err := c.api_v1beta3(storage).InstallREST(container); err != nil {
 			glog.Fatalf("Unable to initialize v1beta3 API: %v", err)
@@ -290,6 +287,11 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		}
 		messages = append(messages, fmt.Sprintf("Started Origin API at %%s%s", OpenShiftAPIPrefixV1))
 		currentAPIVersions = append(currentAPIVersions, OpenShiftAPIV1)
+	}
+
+	err := c.installDeprecatedKubernetesAPI(container)
+	if err != nil {
+		glog.Fatalf("Unable to install deprecated api: %v", err)
 	}
 
 	var root *restful.WebService
@@ -491,7 +493,7 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		"clusterRoleBindings":   clusterRoleBindingStorage,
 		"clusterRoles":          clusterRoleStorage,
 
-		"securityContextConstraints": sccetcd.NewStorage(kubeEtcdStorage),
+		"podSecurityPolicies": pspetcd.NewStorage(kubeEtcdStorage),
 	}
 
 	if configapi.IsBuildEnabled(&c.Options) {
@@ -577,31 +579,24 @@ func (c *MasterConfig) defaultAPIGroupVersion() *apiserver.APIGroupVersion {
 	}
 }
 
-func (c *MasterConfig) installDeprecatedKubernetesAPI(osStorage map[string]rest.Storage, container *restful.Container) error {
+func (c *MasterConfig) installDeprecatedKubernetesAPI(container *restful.Container) error {
 	storage := make(map[string]rest.Storage)
-	storage["securitycontextconstraints"] = osStorage["securityContextConstraints"]
+	// this is registered under the deprecated name to create the old endpoint for backwards compatibility.
+	storage["securitycontextconstraints"] = sccstorage.NewREST(c.PodSecurityPolicyClient().PodSecurityPolicies())
 
 	if configapi.HasKubernetesAPILevel(*c.Options.KubernetesMasterConfig, "v1beta3") {
-		//register the type
-		kapi.Scheme.AddKnownTypes("v1beta3", &sccapiv1beta3.SecurityContextConstraints{})
-		kapi.Scheme.AddKnownTypes("v1beta3", &sccapiv1beta3.SecurityContextConstraintsList{})
-
 		//install the rest storage
 		version := c.defaultAPIGroupVersion()
 		version.Root = KubernetesAPIPrefix
 		version.Storage = storage
 		version.Version = "v1beta3"
 		version.Codec = kapiv1beta3.Codec
-
 		if err := installDeprecatedAPI(container, version); err != nil {
 			return err
 		}
 	}
-	if configapi.HasKubernetesAPILevel(*c.Options.KubernetesMasterConfig, "v1") {
-		//register the type
-		kapi.Scheme.AddKnownTypes("v1", &sccapiv1.SecurityContextConstraints{})
-		kapi.Scheme.AddKnownTypes("v1", &sccapiv1.SecurityContextConstraintsList{})
 
+	if configapi.HasKubernetesAPILevel(*c.Options.KubernetesMasterConfig, "v1") {
 		//install the rest storage
 		version := c.defaultAPIGroupVersion()
 		version.Root = KubernetesAPIPrefix

@@ -10,7 +10,7 @@ import (
 	projectapi "github.com/openshift/origin/pkg/project/api"
 	routeapi "github.com/openshift/origin/pkg/route/api"
 	sdnapi "github.com/openshift/origin/pkg/sdn/api"
-	sccapi "github.com/openshift/origin/pkg/security/scc/api"
+	policyapi "github.com/openshift/origin/pkg/security/policy/api"
 	templateapi "github.com/openshift/origin/pkg/template/api"
 	userapi "github.com/openshift/origin/pkg/user/api"
 	pkgapi "k8s.io/kubernetes/pkg/api"
@@ -2309,44 +2309,7 @@ func deepCopy_api_NetNamespaceList(in sdnapi.NetNamespaceList, out *sdnapi.NetNa
 	return nil
 }
 
-func deepCopy_api_RunAsUserStrategyOptions(in sccapi.RunAsUserStrategyOptions, out *sccapi.RunAsUserStrategyOptions, c *conversion.Cloner) error {
-	out.Type = in.Type
-	if in.UID != nil {
-		out.UID = new(int64)
-		*out.UID = *in.UID
-	} else {
-		out.UID = nil
-	}
-	if in.UIDRangeMin != nil {
-		out.UIDRangeMin = new(int64)
-		*out.UIDRangeMin = *in.UIDRangeMin
-	} else {
-		out.UIDRangeMin = nil
-	}
-	if in.UIDRangeMax != nil {
-		out.UIDRangeMax = new(int64)
-		*out.UIDRangeMax = *in.UIDRangeMax
-	} else {
-		out.UIDRangeMax = nil
-	}
-	return nil
-}
-
-func deepCopy_api_SELinuxContextStrategyOptions(in sccapi.SELinuxContextStrategyOptions, out *sccapi.SELinuxContextStrategyOptions, c *conversion.Cloner) error {
-	out.Type = in.Type
-	if in.SELinuxOptions != nil {
-		if newVal, err := c.DeepCopy(in.SELinuxOptions); err != nil {
-			return err
-		} else {
-			out.SELinuxOptions = newVal.(*pkgapi.SELinuxOptions)
-		}
-	} else {
-		out.SELinuxOptions = nil
-	}
-	return nil
-}
-
-func deepCopy_api_SecurityContextConstraints(in sccapi.SecurityContextConstraints, out *sccapi.SecurityContextConstraints, c *conversion.Cloner) error {
+func deepCopy_api_PodSecurityPolicy(in policyapi.PodSecurityPolicy, out *policyapi.PodSecurityPolicy, c *conversion.Cloner) error {
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
@@ -2394,7 +2357,7 @@ func deepCopy_api_SecurityContextConstraints(in sccapi.SecurityContextConstraint
 	return nil
 }
 
-func deepCopy_api_SecurityContextConstraintsList(in sccapi.SecurityContextConstraintsList, out *sccapi.SecurityContextConstraintsList, c *conversion.Cloner) error {
+func deepCopy_api_PodSecurityPolicyList(in policyapi.PodSecurityPolicyList, out *policyapi.PodSecurityPolicyList, c *conversion.Cloner) error {
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
@@ -2406,14 +2369,51 @@ func deepCopy_api_SecurityContextConstraintsList(in sccapi.SecurityContextConstr
 		out.ListMeta = newVal.(pkgapi.ListMeta)
 	}
 	if in.Items != nil {
-		out.Items = make([]sccapi.SecurityContextConstraints, len(in.Items))
+		out.Items = make([]policyapi.PodSecurityPolicy, len(in.Items))
 		for i := range in.Items {
-			if err := deepCopy_api_SecurityContextConstraints(in.Items[i], &out.Items[i], c); err != nil {
+			if err := deepCopy_api_PodSecurityPolicy(in.Items[i], &out.Items[i], c); err != nil {
 				return err
 			}
 		}
 	} else {
 		out.Items = nil
+	}
+	return nil
+}
+
+func deepCopy_api_RunAsUserStrategyOptions(in policyapi.RunAsUserStrategyOptions, out *policyapi.RunAsUserStrategyOptions, c *conversion.Cloner) error {
+	out.Type = in.Type
+	if in.UID != nil {
+		out.UID = new(int64)
+		*out.UID = *in.UID
+	} else {
+		out.UID = nil
+	}
+	if in.UIDRangeMin != nil {
+		out.UIDRangeMin = new(int64)
+		*out.UIDRangeMin = *in.UIDRangeMin
+	} else {
+		out.UIDRangeMin = nil
+	}
+	if in.UIDRangeMax != nil {
+		out.UIDRangeMax = new(int64)
+		*out.UIDRangeMax = *in.UIDRangeMax
+	} else {
+		out.UIDRangeMax = nil
+	}
+	return nil
+}
+
+func deepCopy_api_SELinuxContextStrategyOptions(in policyapi.SELinuxContextStrategyOptions, out *policyapi.SELinuxContextStrategyOptions, c *conversion.Cloner) error {
+	out.Type = in.Type
+	if in.SELinuxOptions != nil {
+		if newVal, err := c.DeepCopy(in.SELinuxOptions); err != nil {
+			return err
+		} else {
+			out.SELinuxOptions = newVal.(*pkgapi.SELinuxOptions)
+		}
+	} else {
+		out.SELinuxOptions = nil
 	}
 	return nil
 }
@@ -2778,10 +2778,10 @@ func init() {
 		deepCopy_api_HostSubnetList,
 		deepCopy_api_NetNamespace,
 		deepCopy_api_NetNamespaceList,
+		deepCopy_api_PodSecurityPolicy,
+		deepCopy_api_PodSecurityPolicyList,
 		deepCopy_api_RunAsUserStrategyOptions,
 		deepCopy_api_SELinuxContextStrategyOptions,
-		deepCopy_api_SecurityContextConstraints,
-		deepCopy_api_SecurityContextConstraintsList,
 		deepCopy_api_Parameter,
 		deepCopy_api_Template,
 		deepCopy_api_TemplateList,
