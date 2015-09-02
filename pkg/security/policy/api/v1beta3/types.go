@@ -4,6 +4,8 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api/v1beta3"
 )
 
+// SecurityContextConstraints is a deprecated type required to maintain backwards compatibility.
+// It is exactly the same as PodSecurityPolicy.
 type SecurityContextConstraints struct {
 	PodSecurityPolicy `json:",inline"`
 }

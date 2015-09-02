@@ -95,8 +95,8 @@ func (c *constraint) Admit(a kadmission.Attributes) error {
 	}
 
 	// get all constraints that are usable by the user
-	glog.V(4).Infof("getting security context constraints for pod %s (generate: %s) in namespace %s with user info %v", pod.Name, pod.GenerateName, a.GetNamespace(), a.GetUserInfo())
-	matchedConstraints, err := getMatchingSecurityContextConstraints(c.store, a.GetUserInfo())
+	glog.V(4).Infof("getting pod security policies for pod %s (generate: %s) in namespace %s with user info %v", pod.Name, pod.GenerateName, a.GetNamespace(), a.GetUserInfo())
+	matchedConstraints, err := getMatchingPodSecurityPolicies(c.store, a.GetUserInfo())
 	if err != nil {
 		return kadmission.NewForbidden(a, err)
 	}
@@ -104,8 +104,8 @@ func (c *constraint) Admit(a kadmission.Attributes) error {
 	// get all constraints that are usable by the SA
 	if len(pod.Spec.ServiceAccountName) > 0 {
 		userInfo := serviceaccount.UserInfo(a.GetNamespace(), pod.Spec.ServiceAccountName, "")
-		glog.V(4).Infof("getting security context constraints for pod %s (generate: %s) with service account info %v", pod.Name, pod.GenerateName, userInfo)
-		saConstraints, err := getMatchingSecurityContextConstraints(c.store, userInfo)
+		glog.V(4).Infof("getting pod security policies for pod %s (generate: %s) with service account info %v", pod.Name, pod.GenerateName, userInfo)
+		saConstraints, err := getMatchingPodSecurityPolicies(c.store, userInfo)
 		if err != nil {
 			return kadmission.NewForbidden(a, err)
 		}
@@ -259,9 +259,9 @@ func (c *constraint) getNamespace(name string, ns *kapi.Namespace) (*kapi.Namesp
 	return c.client.Namespaces().Get(name)
 }
 
-// getMatchingSecurityContextConstraints returns constraints from the store that match the group,
+// getMatchingPodSecurityPolicies returns constraints from the store that match the group,
 // uid, or user of the service account.
-func getMatchingSecurityContextConstraints(store cache.Store, userInfo user.Info) ([]*policyapi.PodSecurityPolicy, error) {
+func getMatchingPodSecurityPolicies(store cache.Store, userInfo user.Info) ([]*policyapi.PodSecurityPolicy, error) {
 	matchedConstraints := make([]*policyapi.PodSecurityPolicy, 0)
 
 	for _, c := range store.List() {
@@ -269,7 +269,7 @@ func getMatchingSecurityContextConstraints(store cache.Store, userInfo user.Info
 		if !ok {
 			return nil, kerrors.NewInternalError(fmt.Errorf("error converting object from store to a security context constraint: %v", c))
 		}
-		if ConstraintAppliesTo(constraint, userInfo) {
+		if PolicyAppliesTo(constraint, userInfo) {
 			matchedConstraints = append(matchedConstraints, constraint)
 		}
 	}
@@ -277,24 +277,24 @@ func getMatchingSecurityContextConstraints(store cache.Store, userInfo user.Info
 	return matchedConstraints, nil
 }
 
-// constraintAppliesTo inspects the constraint's users and groups against the userInfo to determine
+// PolicyAppliesTo inspects the constraint's users and groups against the userInfo to determine
 // if it is usable by the userInfo.
-func ConstraintAppliesTo(constraint *policyapi.PodSecurityPolicy, userInfo user.Info) bool {
+func PolicyAppliesTo(constraint *policyapi.PodSecurityPolicy, userInfo user.Info) bool {
 	for _, user := range constraint.Users {
 		if userInfo.GetName() == user {
 			return true
 		}
 	}
 	for _, userGroup := range userInfo.GetGroups() {
-		if constraintSupportsGroup(userGroup, constraint.Groups) {
+		if policySupportsGroup(userGroup, constraint.Groups) {
 			return true
 		}
 	}
 	return false
 }
 
-// constraintSupportsGroup checks that group is in constraintGroups.
-func constraintSupportsGroup(group string, constraintGroups []string) bool {
+// policySupportsGroup checks that group is in constraintGroups.
+func policySupportsGroup(group string, constraintGroups []string) bool {
 	for _, g := range constraintGroups {
 		if g == group {
 			return true

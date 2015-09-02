@@ -402,7 +402,7 @@ func validateServiceAccount(osClient osclient.Interface, ns string, sa string) e
 	// get set of sccs applicable to the service account
 	userInfo := serviceaccount.UserInfo(ns, sa, "")
 	for _, scc := range sccList.Items {
-		if admission.ConstraintAppliesTo(&scc, userInfo) {
+		if admission.PolicyAppliesTo(&scc, userInfo) {
 			if scc.AllowHostPorts {
 				return nil
 			}

@@ -40,7 +40,7 @@ var _ PodSecurityPolicyProvider = &simpleProvider{}
 // NewSimpleProvider creates a new PodSecurityPolicyProvider instance.
 func NewSimpleProvider(scc *api.PodSecurityPolicy) (PodSecurityPolicyProvider, error) {
 	if scc == nil {
-		return nil, fmt.Errorf("NewSimpleProvider requires a SecurityContextConstraints")
+		return nil, fmt.Errorf("NewSimpleProvider requires a PodSecurityPolicy")
 	}
 
 	var userStrat user.RunAsUserStrategy = nil
