@@ -621,6 +621,7 @@ func installDeprecatedAPI(container *restful.Container, version *apiserver.APIGr
 }
 
 func getWebServiceForAPIVersion(container *restful.Container, version *apiserver.APIGroupVersion) *restful.WebService {
+	// TODO, check the prefix here!
 	for _, ws := range container.RegisteredWebServices() {
 		if ws.Version() == version.Version {
 			return ws
