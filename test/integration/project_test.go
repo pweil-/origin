@@ -12,7 +12,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/rest"
 	kv1beta3 "k8s.io/kubernetes/pkg/api/v1beta3"
 	"k8s.io/kubernetes/pkg/apiserver"
-	kclient "k8s.io/kubernetes/pkg/client"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/master"
 	namespaceetcd "k8s.io/kubernetes/pkg/registry/namespace/etcd"
 	"k8s.io/kubernetes/pkg/tools/etcdtest"
