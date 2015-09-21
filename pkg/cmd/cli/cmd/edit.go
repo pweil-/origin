@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"k8s.io/kubernetes/pkg/api/errors"
-	kclient "k8s.io/kubernetes/pkg/client"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/kubectl"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
@@ -91,7 +91,7 @@ func NewCmdEdit(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Com
 		},
 	}
 	usage := "Filename, directory, or URL to file to use to edit the resource"
-	kubectl.AddBoundJsonFilenameFlag(cmd, &options.filenames, usage)
+	kubectl.AddJsonFilenameFlag(cmd, &options.filenames, usage)
 	cmd.Flags().StringP("output", "o", "yaml", "Output format. One of: yaml|json.")
 	cmd.Flags().String("output-version", "", "Output the formatted object with the given version (default api-version).")
 
@@ -237,7 +237,10 @@ func (o *EditOptions) RunEdit() error {
 			results.version = o.version
 		}
 
-		err = visitor.Visit(func(info *resource.Info) error {
+		err = visitor.Visit(func(info *resource.Info, err error) error {
+			if err != nil {
+				return err
+			}
 			data, err := info.Mapping.Codec.Encode(info.Object)
 			if err != nil {
 				return err

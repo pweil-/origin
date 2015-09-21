@@ -6,7 +6,7 @@ import (
 	"io"
 
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/spf13/cobra"
 
@@ -79,7 +79,7 @@ func (o *NewGroupOptions) AddGroup() error {
 	group := &userapi.Group{}
 	group.Name = o.Group
 
-	usedNames := util.StringSet{}
+	usedNames := sets.String{}
 	for _, user := range o.Users {
 		if usedNames.Has(user) {
 			continue

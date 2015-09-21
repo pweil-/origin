@@ -10,7 +10,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -105,7 +105,7 @@ func RunTag(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []stri
 		sourceKind = determineSourceKind(f, sourceKind)
 	}
 	if len(sourceKind) > 0 {
-		validSources := util.NewStringSet("imagestreamtag", "istag", "imagestreamimage", "isimage", "docker", "dockerimage")
+		validSources := sets.NewString("imagestreamtag", "istag", "imagestreamimage", "isimage", "docker", "dockerimage")
 		if !validSources.Has(strings.ToLower(sourceKind)) {
 			cmdutil.CheckErr(cmdutil.UsageError(cmd, "invalid source %q; valid values are %v", original, strings.Join(validSources.List(), ", ")))
 		}

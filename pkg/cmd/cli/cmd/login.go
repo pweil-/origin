@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/cobra"
 
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
-	kclientcmdapi "k8s.io/kubernetes/pkg/client/clientcmd/api"
+	kclientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/cli/config"

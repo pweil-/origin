@@ -13,6 +13,7 @@ import (
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	kutil "k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
@@ -100,7 +101,7 @@ func validateNoOverwrites(meta *kapi.ObjectMeta, labels map[string]string) error
 
 func parseEnv(spec []string, defaultReader io.Reader) ([]kapi.EnvVar, []string, error) {
 	env := []kapi.EnvVar{}
-	exists := kutil.NewStringSet()
+	exists := sets.NewString()
 	var remove []string
 	for _, envSpec := range spec {
 		switch {
@@ -312,7 +313,7 @@ func RunEnv(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Comman
 
 func updateEnv(existing []kapi.EnvVar, env []kapi.EnvVar, remove []string) []kapi.EnvVar {
 	out := []kapi.EnvVar{}
-	covered := kutil.NewStringSet(remove...)
+	covered := sets.NewString(remove...)
 	for _, e := range existing {
 		if covered.Has(e.Name) {
 			continue

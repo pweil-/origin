@@ -6,7 +6,7 @@ import (
 	"io"
 
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/spf13/cobra"
 
@@ -107,7 +107,7 @@ func (o *GroupModificationOptions) AddUsers() error {
 		return err
 	}
 
-	existingUsers := util.NewStringSet(group.Users...)
+	existingUsers := sets.NewString(group.Users...)
 	for _, user := range o.Users {
 		if existingUsers.Has(user) {
 			continue
@@ -126,7 +126,7 @@ func (o *GroupModificationOptions) RemoveUsers() error {
 		return err
 	}
 
-	toDelete := util.NewStringSet(o.Users...)
+	toDelete := sets.NewString(o.Users...)
 	newUsers := []string{}
 	for _, user := range group.Users {
 		if toDelete.Has(user) {

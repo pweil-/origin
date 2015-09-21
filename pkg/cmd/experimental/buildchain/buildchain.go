@@ -10,7 +10,7 @@ import (
 	"k8s.io/kubernetes/pkg/fields"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/labels"
-	kutil "k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
@@ -46,7 +46,7 @@ type BuildChainOptions struct {
 	tag  string
 
 	defaultNamespace string
-	namespaces       kutil.StringSet
+	namespaces       sets.String
 	allNamespaces    bool
 	triggerOnly      bool
 
@@ -59,7 +59,7 @@ type BuildChainOptions struct {
 // NewCmdBuildChain implements the OpenShift experimental build-chain command
 func NewCmdBuildChain(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	options := &BuildChainOptions{
-		namespaces: kutil.NewStringSet(),
+		namespaces: sets.NewString(),
 	}
 	cmd := &cobra.Command{
 		Use:     "build-chain [IMAGESTREAM:TAG]",

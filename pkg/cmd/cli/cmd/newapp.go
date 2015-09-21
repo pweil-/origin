@@ -15,8 +15,8 @@ import (
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/runtime"
-	kutil "k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/errors"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -433,7 +433,7 @@ func printHumanReadableQueryResult(r *newcmd.QueryResult, out io.Writer, fullNam
 			description := imageStream.ObjectMeta.Annotations["description"]
 			tags := "<none>"
 			if len(imageStream.Status.Tags) > 0 {
-				set := kutil.NewStringSet()
+				set := sets.NewString()
 				for tag := range imageStream.Status.Tags {
 					set.Insert(tag)
 				}

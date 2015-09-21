@@ -6,7 +6,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
-	kclient "k8s.io/kubernetes/pkg/client"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	osclient "github.com/openshift/origin/pkg/client"
