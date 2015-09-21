@@ -58,8 +58,7 @@ func (c *FakeDeploymentConfigs) Delete(name string) error {
 }
 
 func (c *FakeDeploymentConfigs) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
-	c.Fake.Invokes(ktestclient.NewWatchAction("deploymentconfigs", c.Namespace, label, field, resourceVersion), nil)
-	return c.Fake.Watch, nil
+	return c.Fake.InvokesWatch(ktestclient.NewWatchAction("deploymentconfigs", c.Namespace, label, field, resourceVersion))
 }
 
 func (c *FakeDeploymentConfigs) Generate(name string) (*deployapi.DeploymentConfig, error) {

@@ -49,6 +49,5 @@ func (c *FakePolicyBindings) Delete(name string) error {
 }
 
 func (c *FakePolicyBindings) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
-	c.Fake.Invokes(ktestclient.NewWatchAction("policybindings", c.Namespace, label, field, resourceVersion), nil)
-	return c.Fake.Watch, nil
+	return c.Fake.InvokesWatch(ktestclient.NewWatchAction("policybindings", c.Namespace, label, field, resourceVersion))
 }

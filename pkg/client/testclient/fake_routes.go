@@ -58,6 +58,5 @@ func (c *FakeRoutes) Delete(name string) error {
 }
 
 func (c *FakeRoutes) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
-	c.Fake.Invokes(ktestclient.NewWatchAction("routes", c.Namespace, label, field, resourceVersion), nil)
-	return c.Fake.Watch, nil
+	return c.Fake.InvokesWatch(ktestclient.NewWatchAction("routes", c.Namespace, label, field, resourceVersion))
 }

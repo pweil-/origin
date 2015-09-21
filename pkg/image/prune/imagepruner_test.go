@@ -11,6 +11,8 @@ import (
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	ktc "k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/sets"
 
@@ -716,7 +718,9 @@ func TestDeletingImagePruner(t *testing.T) {
 
 	for name, test := range tests {
 		imageClient := testclient.Fake{}
-		imageClient.SetErr(test.imageDeletionError)
+		imageClient.AddReactor("delete", "images", func(action ktc.Action) (handled bool, ret runtime.Object, err error) {
+			return true, nil, test.imageDeletionError
+		})
 		imagePruner := NewDeletingImagePruner(imageClient.Images())
 		err := imagePruner.PruneImage(&imageapi.Image{ObjectMeta: kapi.ObjectMeta{Name: "id2"}})
 		if test.imageDeletionError != nil {

@@ -58,8 +58,7 @@ func (c *FakeBuilds) Delete(name string) error {
 }
 
 func (c *FakeBuilds) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
-	c.Fake.Invokes(ktestclient.NewWatchAction("builds", c.Namespace, label, field, resourceVersion), nil)
-	return c.Fake.Watch, nil
+	return c.Fake.InvokesWatch(ktestclient.NewWatchAction("builds", c.Namespace, label, field, resourceVersion))
 }
 
 func (c *FakeBuilds) Clone(request *buildapi.BuildRequest) (result *buildapi.Build, err error) {

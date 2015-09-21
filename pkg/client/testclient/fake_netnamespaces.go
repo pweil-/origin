@@ -46,6 +46,5 @@ func (c *FakeNetNamespace) Delete(name string) error {
 }
 
 func (c *FakeNetNamespace) Watch(resourceVersion string) (watch.Interface, error) {
-	c.Fake.Invokes(ktestclient.NewRootWatchAction("netnamespaces", nil, nil, resourceVersion), nil)
-	return c.Fake.Watch, c.Fake.Err()
+	return c.Fake.InvokesWatch(ktestclient.NewRootWatchAction("netnamespaces", nil, nil, resourceVersion))
 }

@@ -53,6 +53,6 @@ func (s FakeBuildStore) GetByKey(id string) (interface{}, bool, error) {
 	return s.Build, true, nil
 }
 
-func (s FakeBuildStore) Replace(list []interface{}) error {
+func (s FakeBuildStore) Replace(list []interface{}, resourceVersion string) error {
 	return nil
 }

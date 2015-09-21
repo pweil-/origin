@@ -3,7 +3,6 @@ package diagnostics
 import (
 	"errors"
 
-	"github.com/openshift/origin/pkg/cmd/cli/config"
 	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 
 	"github.com/openshift/origin/pkg/cmd/cli/config"
