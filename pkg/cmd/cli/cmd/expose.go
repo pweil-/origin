@@ -50,11 +50,11 @@ func NewCmdExpose(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.C
 	// when validating the use of it (invalid for routes)
 	cmd.Flags().Set("protocol", "")
 	cmd.Flag("protocol").DefValue = ""
+	defRun := cmd.Run
 	cmd.Run = func(cmd *cobra.Command, args []string) {
 		err := validate(cmd, f, args)
 		cmdutil.CheckErr(err)
-		err = kcmd.RunExpose(f.Factory, out, cmd, args)
-		cmdutil.CheckErr(err)
+		defRun(cmd, args)
 	}
 	cmd.Flags().String("hostname", "", "Set a hostname for the new route")
 	return cmd
@@ -63,7 +63,7 @@ func NewCmdExpose(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.C
 // validate adds one layer of validation prior to calling the upstream
 // expose command.
 func validate(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
-	namespace, _, err := f.DefaultNamespace()
+	namespace, enforceNamespace, err := f.DefaultNamespace()
 	if err != nil {
 		return err
 	}
@@ -77,17 +77,10 @@ func validate(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
 	r := resource.NewBuilder(mapper, typer, f.ClientMapperForCommand()).
 		ContinueOnError().
 		NamespaceParam(namespace).DefaultNamespace().
+		FilenameParam(enforceNamespace, cmdutil.GetFlagStringSlice(cmd, "filename")...).
 		ResourceTypeOrNameArgs(false, args...).
 		Flatten().
 		Do()
-	err = r.Err()
-	if err != nil {
-		return err
-	}
-	mapping, err := r.ResourceMapping()
-	if err != nil {
-		return err
-	}
 	infos, err := r.Infos()
 	if err != nil {
 		return err
@@ -96,6 +89,7 @@ func validate(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
 		return fmt.Errorf("multiple resources provided: %v", args)
 	}
 	info := infos[0]
+	mapping := info.ResourceMapping()
 
 	generator := cmdutil.GetFlagString(cmd, "generator")
 	switch mapping.Kind {
@@ -178,8 +172,8 @@ func validateFlags(cmd *cobra.Command, generator string) error {
 		if len(cmdutil.GetFlagString(cmd, "target-port")) != 0 {
 			invalidFlags = append(invalidFlags, "--target-port")
 		}
-		if len(cmdutil.GetFlagString(cmd, "public-ip")) != 0 {
-			invalidFlags = append(invalidFlags, "--public-ip")
+		if len(cmdutil.GetFlagString(cmd, "external-ip")) != 0 {
+			invalidFlags = append(invalidFlags, "--external-ip")
 		}
 		if cmdutil.GetFlagInt(cmd, "port") != -1 {
 			invalidFlags = append(invalidFlags, "--port")
