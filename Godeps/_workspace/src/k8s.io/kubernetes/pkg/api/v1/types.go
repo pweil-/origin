@@ -286,6 +286,9 @@ type VolumeSource struct {
 
 	// DownwardAPI represents downward API about the pod that should populate this volume
 	DownwardAPI *DownwardAPIVolumeSource `json:"downwardAPI,omitempty"`
+
+	// Metadata represents metadata about the pod that should populate this volume
+	Metadata *MetadataVolumeSource `json:"metadata,omitempty" description: "Metadata volume containing information about the pod"`
 }
 
 // PersistentVolumeClaimVolumeSource references the user's PVC in the same namespace.
@@ -2543,6 +2546,20 @@ type ComponentStatusList struct {
 
 	// List of ComponentStatus objects.
 	Items []ComponentStatus `json:"items"`
+}
+
+// MetadataVolumeSource represents a volume containing metadata about a pod.
+type MetadataVolumeSource struct {
+	// Items is a list of metadata file name
+	Items []MetadataFile `json:"items,omitempty" description:"list of metadata files"`
+}
+
+// MetadataFile expresses information about a file holding pod metadata.
+type MetadataFile struct {
+	// Required: Name is the name of the file
+	Name string `json:"name" description:"the name of the file to be created"`
+	// Required: Selects a field of the pod: only annotations, labels, name and namespace are supported.
+	FieldRef ObjectFieldSelector `json:"fieldRef" description:"selects a field of the pod. Supported fields: metadata.annotations, metadata.labels, metadata.name, metadata.namespace"`
 }
 
 // DownwardAPIVolumeSource represents a volume containing downward API info
