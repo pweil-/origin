@@ -442,6 +442,8 @@ type FooList struct {
 func initThirdParty(t *testing.T, version string) (*tools.FakeEtcdClient, *httptest.Server, *assert.Assertions) {
 	master, _, assert := setUp(t)
 
+	os.Setenv("ETCD_PREFIX", "thirdparty")
+
 	api := &experimental.ThirdPartyResource{
 		ObjectMeta: api.ObjectMeta{
 			Name: "foo.company.com",
