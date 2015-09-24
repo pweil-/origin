@@ -817,6 +817,8 @@ func deepCopy_v1_BuildOutput(in apiv1.BuildOutput, out *apiv1.BuildOutput, c *co
 	if in.To != nil {
 		if newVal, err := c.DeepCopy(in.To); err != nil {
 			return err
+		} else if newVal == nil {
+			out.To = nil
 		} else {
 			out.To = newVal.(*pkgapiv1.ObjectReference)
 		}
@@ -826,6 +828,8 @@ func deepCopy_v1_BuildOutput(in apiv1.BuildOutput, out *apiv1.BuildOutput, c *co
 	if in.PushSecret != nil {
 		if newVal, err := c.DeepCopy(in.PushSecret); err != nil {
 			return err
+		} else if newVal == nil {
+			out.PushSecret = nil
 		} else {
 			out.PushSecret = newVal.(*pkgapiv1.LocalObjectReference)
 		}
@@ -857,6 +861,8 @@ func deepCopy_v1_BuildRequest(in apiv1.BuildRequest, out *apiv1.BuildRequest, c 
 	if in.TriggeredByImage != nil {
 		if newVal, err := c.DeepCopy(in.TriggeredByImage); err != nil {
 			return err
+		} else if newVal == nil {
+			out.TriggeredByImage = nil
 		} else {
 			out.TriggeredByImage = newVal.(*pkgapiv1.ObjectReference)
 		}
@@ -866,6 +872,8 @@ func deepCopy_v1_BuildRequest(in apiv1.BuildRequest, out *apiv1.BuildRequest, c 
 	if in.From != nil {
 		if newVal, err := c.DeepCopy(in.From); err != nil {
 			return err
+		} else if newVal == nil {
+			out.From = nil
 		} else {
 			out.From = newVal.(*pkgapiv1.ObjectReference)
 		}
@@ -895,6 +903,8 @@ func deepCopy_v1_BuildSource(in apiv1.BuildSource, out *apiv1.BuildSource, c *co
 	if in.SourceSecret != nil {
 		if newVal, err := c.DeepCopy(in.SourceSecret); err != nil {
 			return err
+		} else if newVal == nil {
+			out.SourceSecret = nil
 		} else {
 			out.SourceSecret = newVal.(*pkgapiv1.LocalObjectReference)
 		}
@@ -938,6 +948,8 @@ func deepCopy_v1_BuildStatus(in apiv1.BuildStatus, out *apiv1.BuildStatus, c *co
 	if in.StartTimestamp != nil {
 		if newVal, err := c.DeepCopy(in.StartTimestamp); err != nil {
 			return err
+		} else if newVal == nil {
+			out.StartTimestamp = nil
 		} else {
 			out.StartTimestamp = newVal.(*util.Time)
 		}
@@ -947,6 +959,8 @@ func deepCopy_v1_BuildStatus(in apiv1.BuildStatus, out *apiv1.BuildStatus, c *co
 	if in.CompletionTimestamp != nil {
 		if newVal, err := c.DeepCopy(in.CompletionTimestamp); err != nil {
 			return err
+		} else if newVal == nil {
+			out.CompletionTimestamp = nil
 		} else {
 			out.CompletionTimestamp = newVal.(*util.Time)
 		}
@@ -957,6 +971,8 @@ func deepCopy_v1_BuildStatus(in apiv1.BuildStatus, out *apiv1.BuildStatus, c *co
 	if in.Config != nil {
 		if newVal, err := c.DeepCopy(in.Config); err != nil {
 			return err
+		} else if newVal == nil {
+			out.Config = nil
 		} else {
 			out.Config = newVal.(*pkgapiv1.ObjectReference)
 		}
@@ -1033,6 +1049,8 @@ func deepCopy_v1_CustomBuildStrategy(in apiv1.CustomBuildStrategy, out *apiv1.Cu
 	if in.PullSecret != nil {
 		if newVal, err := c.DeepCopy(in.PullSecret); err != nil {
 			return err
+		} else if newVal == nil {
+			out.PullSecret = nil
 		} else {
 			out.PullSecret = newVal.(*pkgapiv1.LocalObjectReference)
 		}
@@ -1070,6 +1088,8 @@ func deepCopy_v1_DockerBuildStrategy(in apiv1.DockerBuildStrategy, out *apiv1.Do
 	if in.From != nil {
 		if newVal, err := c.DeepCopy(in.From); err != nil {
 			return err
+		} else if newVal == nil {
+			out.From = nil
 		} else {
 			out.From = newVal.(*pkgapiv1.ObjectReference)
 		}
@@ -1079,6 +1099,8 @@ func deepCopy_v1_DockerBuildStrategy(in apiv1.DockerBuildStrategy, out *apiv1.Do
 	if in.PullSecret != nil {
 		if newVal, err := c.DeepCopy(in.PullSecret); err != nil {
 			return err
+		} else if newVal == nil {
+			out.PullSecret = nil
 		} else {
 			out.PullSecret = newVal.(*pkgapiv1.LocalObjectReference)
 		}
@@ -1127,6 +1149,8 @@ func deepCopy_v1_ImageChangeTrigger(in apiv1.ImageChangeTrigger, out *apiv1.Imag
 	if in.From != nil {
 		if newVal, err := c.DeepCopy(in.From); err != nil {
 			return err
+		} else if newVal == nil {
+			out.From = nil
 		} else {
 			out.From = newVal.(*pkgapiv1.ObjectReference)
 		}
@@ -1155,6 +1179,8 @@ func deepCopy_v1_SourceBuildStrategy(in apiv1.SourceBuildStrategy, out *apiv1.So
 	if in.PullSecret != nil {
 		if newVal, err := c.DeepCopy(in.PullSecret); err != nil {
 			return err
+		} else if newVal == nil {
+			out.PullSecret = nil
 		} else {
 			out.PullSecret = newVal.(*pkgapiv1.LocalObjectReference)
 		}
@@ -1345,6 +1371,8 @@ func deepCopy_v1_DeploymentConfigSpec(in deployapiv1.DeploymentConfigSpec, out *
 	if in.Template != nil {
 		if newVal, err := c.DeepCopy(in.Template); err != nil {
 			return err
+		} else if newVal == nil {
+			out.Template = nil
 		} else {
 			out.Template = newVal.(*pkgapiv1.PodTemplateSpec)
 		}
@@ -1532,6 +1560,8 @@ func deepCopy_v1_RollingDeploymentStrategyParams(in deployapiv1.RollingDeploymen
 	if in.MaxUnavailable != nil {
 		if newVal, err := c.DeepCopy(in.MaxUnavailable); err != nil {
 			return err
+		} else if newVal == nil {
+			out.MaxUnavailable = nil
 		} else {
 			out.MaxUnavailable = newVal.(*util.IntOrString)
 		}
@@ -1541,6 +1571,8 @@ func deepCopy_v1_RollingDeploymentStrategyParams(in deployapiv1.RollingDeploymen
 	if in.MaxSurge != nil {
 		if newVal, err := c.DeepCopy(in.MaxSurge); err != nil {
 			return err
+		} else if newVal == nil {
+			out.MaxSurge = nil
 		} else {
 			out.MaxSurge = newVal.(*util.IntOrString)
 		}
@@ -1772,6 +1804,8 @@ func deepCopy_v1_NamedTagReference(in imageapiv1.NamedTagReference, out *imageap
 	if in.From != nil {
 		if newVal, err := c.DeepCopy(in.From); err != nil {
 			return err
+		} else if newVal == nil {
+			out.From = nil
 		} else {
 			out.From = newVal.(*pkgapiv1.ObjectReference)
 		}

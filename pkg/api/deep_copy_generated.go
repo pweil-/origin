@@ -793,6 +793,8 @@ func deepCopy_api_BuildOutput(in buildapi.BuildOutput, out *buildapi.BuildOutput
 	if in.To != nil {
 		if newVal, err := c.DeepCopy(in.To); err != nil {
 			return err
+		} else if newVal == nil {
+			out.To = nil
 		} else {
 			out.To = newVal.(*pkgapi.ObjectReference)
 		}
@@ -802,6 +804,8 @@ func deepCopy_api_BuildOutput(in buildapi.BuildOutput, out *buildapi.BuildOutput
 	if in.PushSecret != nil {
 		if newVal, err := c.DeepCopy(in.PushSecret); err != nil {
 			return err
+		} else if newVal == nil {
+			out.PushSecret = nil
 		} else {
 			out.PushSecret = newVal.(*pkgapi.LocalObjectReference)
 		}
@@ -833,6 +837,8 @@ func deepCopy_api_BuildRequest(in buildapi.BuildRequest, out *buildapi.BuildRequ
 	if in.TriggeredByImage != nil {
 		if newVal, err := c.DeepCopy(in.TriggeredByImage); err != nil {
 			return err
+		} else if newVal == nil {
+			out.TriggeredByImage = nil
 		} else {
 			out.TriggeredByImage = newVal.(*pkgapi.ObjectReference)
 		}
@@ -842,6 +848,8 @@ func deepCopy_api_BuildRequest(in buildapi.BuildRequest, out *buildapi.BuildRequ
 	if in.From != nil {
 		if newVal, err := c.DeepCopy(in.From); err != nil {
 			return err
+		} else if newVal == nil {
+			out.From = nil
 		} else {
 			out.From = newVal.(*pkgapi.ObjectReference)
 		}
@@ -871,6 +879,8 @@ func deepCopy_api_BuildSource(in buildapi.BuildSource, out *buildapi.BuildSource
 	if in.SourceSecret != nil {
 		if newVal, err := c.DeepCopy(in.SourceSecret); err != nil {
 			return err
+		} else if newVal == nil {
+			out.SourceSecret = nil
 		} else {
 			out.SourceSecret = newVal.(*pkgapi.LocalObjectReference)
 		}
@@ -914,6 +924,8 @@ func deepCopy_api_BuildStatus(in buildapi.BuildStatus, out *buildapi.BuildStatus
 	if in.StartTimestamp != nil {
 		if newVal, err := c.DeepCopy(in.StartTimestamp); err != nil {
 			return err
+		} else if newVal == nil {
+			out.StartTimestamp = nil
 		} else {
 			out.StartTimestamp = newVal.(*util.Time)
 		}
@@ -923,6 +935,8 @@ func deepCopy_api_BuildStatus(in buildapi.BuildStatus, out *buildapi.BuildStatus
 	if in.CompletionTimestamp != nil {
 		if newVal, err := c.DeepCopy(in.CompletionTimestamp); err != nil {
 			return err
+		} else if newVal == nil {
+			out.CompletionTimestamp = nil
 		} else {
 			out.CompletionTimestamp = newVal.(*util.Time)
 		}
@@ -933,6 +947,8 @@ func deepCopy_api_BuildStatus(in buildapi.BuildStatus, out *buildapi.BuildStatus
 	if in.Config != nil {
 		if newVal, err := c.DeepCopy(in.Config); err != nil {
 			return err
+		} else if newVal == nil {
+			out.Config = nil
 		} else {
 			out.Config = newVal.(*pkgapi.ObjectReference)
 		}
@@ -1009,6 +1025,8 @@ func deepCopy_api_CustomBuildStrategy(in buildapi.CustomBuildStrategy, out *buil
 	if in.PullSecret != nil {
 		if newVal, err := c.DeepCopy(in.PullSecret); err != nil {
 			return err
+		} else if newVal == nil {
+			out.PullSecret = nil
 		} else {
 			out.PullSecret = newVal.(*pkgapi.LocalObjectReference)
 		}
@@ -1046,6 +1064,8 @@ func deepCopy_api_DockerBuildStrategy(in buildapi.DockerBuildStrategy, out *buil
 	if in.From != nil {
 		if newVal, err := c.DeepCopy(in.From); err != nil {
 			return err
+		} else if newVal == nil {
+			out.From = nil
 		} else {
 			out.From = newVal.(*pkgapi.ObjectReference)
 		}
@@ -1055,6 +1075,8 @@ func deepCopy_api_DockerBuildStrategy(in buildapi.DockerBuildStrategy, out *buil
 	if in.PullSecret != nil {
 		if newVal, err := c.DeepCopy(in.PullSecret); err != nil {
 			return err
+		} else if newVal == nil {
+			out.PullSecret = nil
 		} else {
 			out.PullSecret = newVal.(*pkgapi.LocalObjectReference)
 		}
@@ -1103,6 +1125,8 @@ func deepCopy_api_ImageChangeTrigger(in buildapi.ImageChangeTrigger, out *builda
 	if in.From != nil {
 		if newVal, err := c.DeepCopy(in.From); err != nil {
 			return err
+		} else if newVal == nil {
+			out.From = nil
 		} else {
 			out.From = newVal.(*pkgapi.ObjectReference)
 		}
@@ -1131,6 +1155,8 @@ func deepCopy_api_SourceBuildStrategy(in buildapi.SourceBuildStrategy, out *buil
 	if in.PullSecret != nil {
 		if newVal, err := c.DeepCopy(in.PullSecret); err != nil {
 			return err
+		} else if newVal == nil {
+			out.PullSecret = nil
 		} else {
 			out.PullSecret = newVal.(*pkgapi.LocalObjectReference)
 		}
@@ -1873,6 +1899,8 @@ func deepCopy_api_TagReference(in imageapi.TagReference, out *imageapi.TagRefere
 	if in.From != nil {
 		if newVal, err := c.DeepCopy(in.From); err != nil {
 			return err
+		} else if newVal == nil {
+			out.From = nil
 		} else {
 			out.From = newVal.(*pkgapi.ObjectReference)
 		}
