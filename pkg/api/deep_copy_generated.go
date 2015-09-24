@@ -1315,6 +1315,8 @@ func deepCopy_api_DeploymentDetails(in deployapi.DeploymentDetails, out *deploya
 		for i := range in.Causes {
 			if newVal, err := c.DeepCopy(in.Causes[i]); err != nil {
 				return err
+			} else if newVal == nil {
+				out.Causes[i] = nil
 			} else {
 				out.Causes[i] = newVal.(*deployapi.DeploymentCause)
 			}
@@ -2394,6 +2396,8 @@ func deepCopy_api_Template(in templateapi.Template, out *templateapi.Template, c
 		for i := range in.Objects {
 			if newVal, err := c.DeepCopy(in.Objects[i]); err != nil {
 				return err
+			} else if newVal == nil {
+				out.Objects[i] = nil
 			} else {
 				out.Objects[i] = newVal.(runtime.Object)
 			}
