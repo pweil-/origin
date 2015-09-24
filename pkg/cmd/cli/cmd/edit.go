@@ -58,16 +58,16 @@ is another editor changing the resource on the server. When this occurs, you wil
 to apply your changes to the newer version of the resource, or update your temporary
 saved copy to include the latest resource version.`
 
-	editExample = `  // Edit the service named 'docker-registry':
+	editExample = `  # Edit the service named 'docker-registry':
   $ %[1]s edit svc/docker-registry
 
-  // Edit the DeploymentConfig named 'my-deployment':
+  # Edit the DeploymentConfig named 'my-deployment':
   $ %[1]s edit dc/my-deployment
 
-  // Use an alternative editor
+  # Use an alternative editor
   $ OC_EDITOR="nano" %[1]s edit dc/my-deployment
 
-  // Edit the service 'docker-registry' in JSON using the v1beta3 API format:
+  # Edit the service 'docker-registry' in JSON using the v1beta3 API format:
   $ %[1]s edit svc/docker-registry --output-version=v1beta3 -o json`
 )
 

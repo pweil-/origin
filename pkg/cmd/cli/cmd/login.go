@@ -31,13 +31,13 @@ The information required to login -- like username and password, a session token
 the server details -- can be provided through flags. If not provided, the command will
 prompt for user input as needed.`
 
-	loginExample = `  // Log in interactively
+	loginExample = `  # Log in interactively
   $ %[1]s login
 
-  // Log in to the given server with the given certificate authority file
+  # Log in to the given server with the given certificate authority file
   $ %[1]s login localhost:8443 --certificate-authority=/path/to/cert.crt
 
-  // Log in to the given server with the given credentials (will not prompt interactively)
+  # Log in to the given server with the given credentials (will not prompt interactively)
   $ %[1]s login localhost:8443 --username=myuser --password=mypass`
 )
 

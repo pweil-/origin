@@ -68,17 +68,17 @@ of your config at the latest position.
 
 If no options are given, shows information about the latest deployment.`
 
-	deployExample = `  // Display the latest deployment for the 'database' deployment config
+	deployExample = `  # Display the latest deployment for the 'database' deployment config
   $ %[1]s deploy database
 
-  // Start a new deployment based on the 'database'
+  # Start a new deployment based on the 'database'
   $ %[1]s deploy database --latest
 
-  // Retry the latest failed deployment based on 'frontend'
-  // The deployer pod and any hook pods are deleted for the latest failed deployment
+  # Retry the latest failed deployment based on 'frontend'
+  # The deployer pod and any hook pods are deleted for the latest failed deployment
   $ %[1]s deploy frontend --retry
 
-  // Cancel the in-progress deployment based on 'frontend'
+  # Cancel the in-progress deployment based on 'frontend'
   $ %[1]s deploy frontend --cancel`
 )
 

@@ -48,10 +48,10 @@ name, this command will accept that context name instead.
 For advanced configuration, or to manage the contents of your config file, use the 'config'
 command.`
 
-	projectExample = `  // Switch to 'myapp' project
+	projectExample = `  # Switch to 'myapp' project
   $ %[1]s myapp
 
-  // Display the project currently in use
+  # Display the project currently in use
   $ %[1]s`
 )
 

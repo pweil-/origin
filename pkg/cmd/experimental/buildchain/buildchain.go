@@ -27,13 +27,13 @@ Supported formats for the generated graph are dot and a human-readable output.
 Tag and namespace are optional and if they are not specified, 'latest' and the
 default namespace will be used respectively.`
 
-	buildChainExample = `  // Build the dependency tree for the 'latest' tag in <image-stream>
+	buildChainExample = `  # Build the dependency tree for the 'latest' tag in <image-stream>
   $ %[1]s <image-stream>
 
-  // Build the dependency tree for 'v2' tag in dot format and visualize it via the dot utility
+  # Build the dependency tree for 'v2' tag in dot format and visualize it via the dot utility
   $ %[1]s <image-stream>:v2 -o dot | dot -T svg -o deps.svg
 
-  // Build the dependency tree across all namespaces for the specified image stream tag found in 'test' namespace
+  # Build the dependency tree across all namespaces for the specified image stream tag found in 'test' namespace
   $ %[1]s <image-stream> -n test --all`
 )
 

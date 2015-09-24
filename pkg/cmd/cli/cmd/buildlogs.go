@@ -25,7 +25,7 @@ This command displays the log for the provided build. If the pod that ran the bu
 will no longer be available. If the build has not yet completed, the build logs will be streamed until the
 build completes or fails.`
 
-	buildLogsExample = `  // Stream logs from container
+	buildLogsExample = `  # Stream logs from container
   $ %[1]s build-logs 566bed879d2d`
 )
 

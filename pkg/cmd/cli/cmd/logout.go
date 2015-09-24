@@ -40,7 +40,7 @@ the local copy of that certificate or the record of your server login.
 After logging out, if you want to log back into the server use '%[1]s'.`
 
 	logoutExample = `
-  // Logout
+  # Logout
   $ %[1]s`
 )
 

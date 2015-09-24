@@ -21,7 +21,7 @@ Add users to a group.
 
 This command will append unique users to the list of members for a group.`
 
-	addExample = `  // Add user1 and user2 to my-group
+	addExample = `  # Add user1 and user2 to my-group
   $ %[1]s my-group user1 user2`
 )
 
@@ -32,7 +32,7 @@ Remove users from a group.
 
 This command will remove users from the list of members for a group.`
 
-	removeExample = `  // Remove user1 and user2 from my-group
+	removeExample = `  # Remove user1 and user2 from my-group
   $ %[1]s my-group user1 user2`
 )
 
@@ -85,7 +85,7 @@ func NewCmdRemoveUsers(name, fullName string, f *clientcmd.Factory, out io.Write
 
 func (o *GroupModificationOptions) Complete(f *clientcmd.Factory, args []string) error {
 	if len(args) < 2 {
-		return errors.New("You must specify at least two arguments: GROUP USER [USER ...]")
+		return errors.New("you must specify at least two arguments: GROUP USER [USER ...]")
 	}
 
 	o.Group = args[0]
