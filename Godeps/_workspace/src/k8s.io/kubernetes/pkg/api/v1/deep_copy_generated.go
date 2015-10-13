@@ -1415,12 +1415,6 @@ func deepCopy_v1_PodSecurityContext(in PodSecurityContext, out *PodSecurityConte
 	} else {
 		out.SupplementalGroups = nil
 	}
-	if in.FSGroup != nil {
-		out.FSGroup = new(int64)
-		*out.FSGroup = *in.FSGroup
-	} else {
-		out.FSGroup = nil
-	}
 	return nil
 }
 
