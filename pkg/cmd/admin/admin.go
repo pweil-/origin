@@ -11,6 +11,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/admin/cert"
 	diagnostics "github.com/openshift/origin/pkg/cmd/admin/diagnostics"
 	"github.com/openshift/origin/pkg/cmd/admin/groups"
+	"github.com/openshift/origin/pkg/cmd/admin/logging"
 	"github.com/openshift/origin/pkg/cmd/admin/migrate"
 	migrateimages "github.com/openshift/origin/pkg/cmd/admin/migrate/images"
 	migratestorage "github.com/openshift/origin/pkg/cmd/admin/migrate/storage"
@@ -52,6 +53,7 @@ func NewCommandAdmin(name, fullName string, in io.Reader, out io.Writer, errout 
 		{
 			Message: "Component Installation:",
 			Commands: []*cobra.Command{
+				logging.NewCmdLogging(f, fullName, "logging", out),
 				router.NewCmdRouter(f, fullName, "router", out),
 				exipfailover.NewCmdIPFailoverConfig(f, fullName, "ipfailover", out, errout),
 				registry.NewCmdRegistry(f, fullName, "registry", out),
