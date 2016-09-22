@@ -12,6 +12,10 @@ const (
 	componentCurator = "curator"
 	componentElastic = "elasticsearch"
 	componentKibana  = "kibana"
+
+	defaultDCIntervalSec int64 = 1
+	defaultDCTimeoutSec int64 = 600
+	defaultDCUpdatePeriodSec int64 = 1
 )
 
 var componentNames = sets.NewString(componentKibana, componentFluentd, componentCurator, componentElastic)
