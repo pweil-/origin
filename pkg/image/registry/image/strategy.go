@@ -19,11 +19,13 @@ import (
 type imageStrategy struct {
 	runtime.ObjectTyper
 	kapi.NameGenerator
+
+	ManifestStorage
 }
 
 // Strategy is the default logic that applies when creating and updating
 // Image objects via the REST API.
-var Strategy = imageStrategy{kapi.Scheme, kapi.SimpleNameGenerator}
+var Strategy = imageStrategy{kapi.Scheme, kapi.SimpleNameGenerator, &FileManifestStorage{"/tmp/openshift-manifests"}}
 
 // NamespaceScoped is false for images.
 func (imageStrategy) NamespaceScoped() bool {
@@ -41,6 +43,11 @@ func (s imageStrategy) PrepareForCreate(ctx kapi.Context, obj runtime.Object) {
 
 	// clear signature fields that will be later set by server once it's able to parse the content
 	s.clearSignatureDetails(newImage)
+
+	if err := s.ManifestStorage.CreateOrUpdateManifest(ctx, newImage.DockerImageReference, newImage.DockerImageManifest); err != nil {
+		utilruntime.HandleError(err)
+	}
+	s.clearManifest(newImage)
 }
 
 // Validate validates a new image.
@@ -111,6 +118,23 @@ func (s imageStrategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Objec
 
 	// clear signature fields that will be later set by server once it's able to parse the content
 	s.clearSignatureDetails(newImage)
+
+	if err := s.ManifestStorage.CreateOrUpdateManifest(ctx, newImage.DockerImageReference, newImage.DockerImageManifest); err != nil {
+		utilruntime.HandleError(err)
+	}
+	s.clearManifest(newImage)
+}
+
+func (s imageStrategy) Decorate(obj runtime.Object) error {
+	img := obj.(*api.Image)
+	if img.DockerImageManifest == "" {
+		manifest, err := s.ManifestStorage.GetManifest(img.DockerImageReference)
+		if err != nil {
+			return err
+		}
+		img.DockerImageManifest = manifest
+	}
+	return nil
 }
 
 // ValidateUpdate is the default update validation for an end user.
@@ -130,6 +154,10 @@ func (imageStrategy) clearSignatureDetails(image *api.Image) {
 		signature.IssuedBy = nil
 		signature.IssuedTo = nil
 	}
+}
+
+func (imageStrategy) clearManifest(image *api.Image) {
+	image.DockerImageManifest = ""
 }
 
 // Matcher returns a generic matcher for a given label and field selector.

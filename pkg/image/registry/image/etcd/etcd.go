@@ -42,6 +42,8 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 		UpdateStrategy: image.Strategy,
 
 		ReturnDeletedObject: false,
+
+		Decorator: image.Strategy.Decorate,
 	}
 
 	if err := restoptions.ApplyOptions(optsGetter, store, false, storage.NoTriggerPublisher); err != nil {
