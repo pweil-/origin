@@ -2,8 +2,13 @@ package policy
 
 import (
 	"crypto/tls"
+	"crypto/x509"
+	"encoding/json"
 	"fmt"
+	"github.com/golang/glog"
 	"net/http"
+
+	"k8s.io/kubernetes/pkg/apis/imagepolicy/v1alpha1"
 )
 
 type ImagePolicyServer struct {
@@ -13,16 +18,30 @@ type ImagePolicyServer struct {
 	listenAddr string
 }
 
-func NewImagePolicyServer() *ImagePolicyServer {
-	// TODO get cert configuration
-
+func NewImagePolicyServer(cert, key, caCert []byte, listenAddr string) *ImagePolicyServer {
 	return &ImagePolicyServer{
-		listenAddr: "0.0.0.0:443",
+		listenAddr: listenAddr,
+		cert:       cert,
+		key:        key,
+		caCert:     caCert,
 	}
 }
 
-func (s *ImagePolicyServer) HandleSignatureRequest() {
-	// TODO
+func (s *ImagePolicyServer) HandleSignatureRequest(w http.ResponseWriter, r *http.Request) {
+	// TODO real decode/encode, handling of the request
+	var review v1alpha1.ImageReview
+	if err := json.NewDecoder(r.Body).Decode(&review); err != nil {
+		http.Error(w, fmt.Sprintf("failed to decode body: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	review.Status = v1alpha1.ImageReviewStatus{
+		Allowed: true,
+		Reason:  "default",
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(review)
 }
 
 func (s *ImagePolicyServer) Run() error {
@@ -30,8 +49,9 @@ func (s *ImagePolicyServer) Run() error {
 	mux.HandleFunc(("/healthz"), http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, "ok")
 	}))
+	mux.HandleFunc(("/policy"), s.HandleSignatureRequest)
 
-	tlsCert, err := tls.X509KeyPair(append(s.cert, s.caCert...), s.key)
+	tlsCert, err := tls.X509KeyPair(s.cert, s.key)
 	if err != nil {
 		return err
 	}
@@ -39,11 +59,19 @@ func (s *ImagePolicyServer) Run() error {
 	cfg := &tls.Config{
 		Certificates: []tls.Certificate{tlsCert},
 	}
+
+	if s.caCert != nil {
+		rootCAs := x509.NewCertPool()
+		rootCAs.AppendCertsFromPEM(s.caCert)
+		cfg.ClientCAs = rootCAs
+		cfg.ClientAuth = tls.RequireAndVerifyClientCert
+	}
+
 	listener, err := tls.Listen("tcp", s.listenAddr, cfg)
 	if err != nil {
 		return err
 	}
-
+	glog.Infof("Listening on %s", s.listenAddr)
 
 	if err := http.Serve(listener, mux); err != nil {
 		return err
