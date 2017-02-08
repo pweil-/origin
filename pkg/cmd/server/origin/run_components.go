@@ -164,10 +164,10 @@ func (c *MasterConfig) RunServiceAccountPullSecretsControllers(informers shared.
 	secretInformer := informers.Secrets()
 
 	serviceaccountcontrollers.NewDockercfgDeletedController(c.KubeClientset(), secretInformer, serviceaccountcontrollers.DockercfgDeletedControllerOptions{}).Run()
-	serviceaccountcontrollers.NewDockercfgTokenDeletedController(c.KubeClientset(), serviceaccountcontrollers.DockercfgTokenDeletedControllerOptions{}).Run()
+	serviceaccountcontrollers.NewDockercfgTokenDeletedController(c.KubeClientset(), secretInformer, serviceaccountcontrollers.DockercfgTokenDeletedControllerOptions{}).Run()
 
 	dockerURLsIntialized := make(chan struct{})
-	dockercfgController := serviceaccountcontrollers.NewDockercfgController(c.KubeClientset(), serviceaccountcontrollers.DockercfgControllerOptions{DockerURLsIntialized: dockerURLsIntialized})
+	dockercfgController := serviceaccountcontrollers.NewDockercfgController(c.KubeClientset(), secretInformer, serviceaccountcontrollers.DockercfgControllerOptions{DockerURLsIntialized: dockerURLsIntialized})
 	go dockercfgController.Run(5, utilwait.NeverStop)
 
 	dockerRegistryControllerOptions := serviceaccountcontrollers.DockerRegistryServiceControllerOptions{
@@ -176,7 +176,7 @@ func (c *MasterConfig) RunServiceAccountPullSecretsControllers(informers shared.
 		DockercfgController:  dockercfgController,
 		DockerURLsIntialized: dockerURLsIntialized,
 	}
-	go serviceaccountcontrollers.NewDockerRegistryServiceController(c.KubeClientset(), dockerRegistryControllerOptions).Run(10, make(chan struct{}))
+	go serviceaccountcontrollers.NewDockerRegistryServiceController(c.KubeClientset(), secretInformer, dockerRegistryControllerOptions).Run(10, make(chan struct{}))
 }
 
 // RunAssetServer starts the asset server for the OpenShift UI.
