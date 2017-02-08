@@ -12,7 +12,9 @@ import (
 type SecretInformer interface {
 	Informer() cache.SharedIndexInformer
 	Indexer() cache.Indexer
-	Lister() *cache.StoreToReplicationControllerLister
+	// Lister is not implemented for SecretInformer
+	// TODO: Remove this after 1.6 rebase.
+	Lister() interface{}
 }
 
 type secretInformer struct {
@@ -58,9 +60,9 @@ func (f *secretInformer) Indexer() cache.Indexer {
 	return informer.GetIndexer()
 }
 
-func (f *secretInformer) Lister() *cache.StoreToReplicationControllerLister {
-	informer := f.Informer()
-	return &cache.StoreToReplicationControllerLister{Indexer: informer.GetIndexer()}
+// Lister is not implemented for Secret
+func (f *secretInformer) Lister() interface{} {
+	return nil
 }
 
 type ReplicationControllerInformer interface {
