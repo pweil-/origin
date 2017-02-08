@@ -58,6 +58,7 @@ func controllerSetup(startingObjects []runtime.Object, t *testing.T) (*fake.Clie
 
 	stopChan := make(<-chan struct{})
 	informerFactory.StartCore(stopChan)
+	informerFactory.Start(stopChan)
 
 	return kubeclient, fakeWatch, controller
 }

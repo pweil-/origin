@@ -24,6 +24,13 @@ import (
 	"k8s.io/kubernetes/pkg/watch"
 )
 
+const (
+	// dockercfgIndex is the index name for the shared informer when retrieving docker config secrets
+	dockercfgIndex = "dockercfg"
+	// saTokenIndex is the index name for the shared informer when retrieving service account token secrets
+	saTokenIndex = "saToken"
+)
+
 // DockerRegistryServiceControllerOptions contains options for the DockerRegistryServiceController
 type DockerRegistryServiceControllerOptions struct {
 	// Resync is the time.Duration at which to fully re-list services.
@@ -89,9 +96,19 @@ func NewDockerRegistryServiceController(cl kclientset.Interface, secretInformer 
 		}
 		return []string{secret.Namespace + "/" + secret.Name}, nil
 	}
+	saTokenIndexerFn := func(obj interface{}) ([]string, error) {
+		secret, ok := obj.(*kapi.Secret)
+		if !ok {
+			return nil, nil
+		}
+		if secret.Type != kapi.SecretTypeServiceAccountToken {
+			return nil, nil
+		}
+		return []string{secret.Namespace + "/" + secret.Name}, nil
+	}
 
 	secretIndexer := secretInformer.Indexer()
-	secretIndexer.AddIndexers(map[string]cache.IndexFunc{"dockercfg": secretTypeIndexerFn})
+	secretIndexer.AddIndexers(map[string]cache.IndexFunc{dockercfgIndex: secretTypeIndexerFn, saTokenIndex: saTokenIndexerFn})
 	e.secretController = secretInformer.Informer()
 	e.secretCache = secretIndexer
 
@@ -133,7 +150,6 @@ func (e *DockerRegistryServiceController) Run(workers int, stopCh <-chan struct{
 	defer utilruntime.HandleCrash()
 
 	go e.serviceController.Run(stopCh)
-	go e.secretController.Run(stopCh)
 
 	// Wait for the store to sync before starting any work in this controller.
 	ready := make(chan struct{})
@@ -270,13 +286,8 @@ func (e *DockerRegistryServiceController) syncRegistryLocationChange(key string)
 
 	// we've changed the docker registry URL.  Add items to the work queue for all known secrets
 	// new secrets will already get the updated value.
-	for _, obj := range e.secretCache.ListIndexFuncValues("dockercfg") {
-		key, err := controller.KeyFunc(obj)
-		if err != nil {
-			glog.Errorf("Couldn't get key for object %+v: %v", obj, err)
-			continue
-		}
-		e.secretsToUpdate.Add(key)
+	for _, obj := range e.secretCache.ListIndexFuncValues(dockercfgIndex) {
+		e.secretsToUpdate.Add(obj)
 	}
 
 	return nil
@@ -314,7 +325,7 @@ func (e *DockerRegistryServiceController) watchForDockercfgSecretUpdates() {
 }
 
 func (e *DockerRegistryServiceController) syncSecretUpdate(key string) error {
-	obj, err := e.secretCache.ByIndex("dockercfg", key)
+	obj, err := e.secretCache.ByIndex(dockercfgIndex, key)
 	if err != nil {
 		utilruntime.HandleError(fmt.Errorf("Unable to retrieve secret %v from store: %v", key, err))
 		return err
@@ -338,7 +349,7 @@ func (e *DockerRegistryServiceController) syncSecretUpdate(key string) error {
 	}
 
 	// we need to update it, make a copy
-	uncastObj, err := kapi.Scheme.DeepCopy(obj)
+	uncastObj, err := kapi.Scheme.DeepCopy(obj[0])
 	if err != nil {
 		return err
 	}
@@ -350,7 +361,7 @@ func (e *DockerRegistryServiceController) syncSecretUpdate(key string) error {
 	}
 	if len(dockerCredentials) == 0 {
 		tokenSecretKey := dockercfgSecret.Namespace + "/" + dockercfgSecret.Annotations[ServiceAccountTokenSecretNameKey]
-		tokenSecret, err := e.secretCache.ByIndex("dockercfg", tokenSecretKey)
+		tokenSecret, err := e.secretCache.ByIndex(saTokenIndex, tokenSecretKey)
 		if len(tokenSecret) == 0 {
 			utilruntime.HandleError(fmt.Errorf("cannot determine SA token due to missing secret: %v", tokenSecretKey))
 			return nil
