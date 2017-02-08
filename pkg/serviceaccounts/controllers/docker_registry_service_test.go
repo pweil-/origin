@@ -7,9 +7,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/openshift/origin/pkg/client/testclient"
+	"github.com/openshift/origin/pkg/controller/shared"
+
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	"k8s.io/kubernetes/pkg/client/testing/core"
+	"k8s.io/kubernetes/pkg/controller/informers"
 	"k8s.io/kubernetes/pkg/credentialprovider"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/watch"
@@ -41,13 +45,19 @@ func controllerSetup(startingObjects []runtime.Object, t *testing.T) (*fake.Clie
 	})
 	kubeclient.PrependWatchReactor("services", core.DefaultWatchReactor(fakeWatch, nil))
 
-	controller := NewDockerRegistryServiceController(kubeclient, DockerRegistryServiceControllerOptions{
+	kubeInformerFactory := informers.NewSharedInformerFactory(kubeclient, 1*time.Second)
+	informerFactory := shared.NewInformerFactory(kubeInformerFactory, kubeclient, testclient.NewSimpleFake(), shared.DefaultListerWatcherOverrides{}, 1*time.Second)
+
+	controller := NewDockerRegistryServiceController(kubeclient, informerFactory.Secrets(), DockerRegistryServiceControllerOptions{
 		Resync:               10 * time.Minute,
 		RegistryNamespace:    registryNamespace,
 		RegistryServiceName:  registryName,
 		DockercfgController:  &DockercfgController{},
 		DockerURLsIntialized: make(chan struct{}),
 	})
+
+	stopChan := make(<-chan struct{})
+	informerFactory.StartCore(stopChan)
 
 	return kubeclient, fakeWatch, controller
 }

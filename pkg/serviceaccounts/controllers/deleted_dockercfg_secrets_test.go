@@ -4,11 +4,16 @@ import (
 	"math/rand"
 	"reflect"
 	"testing"
+	"time"
+
+	"github.com/openshift/origin/pkg/client/testclient"
+	"github.com/openshift/origin/pkg/controller/shared"
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	"k8s.io/kubernetes/pkg/client/testing/core"
+	"k8s.io/kubernetes/pkg/controller/informers"
 	"k8s.io/kubernetes/pkg/runtime"
 )
 
@@ -55,8 +60,12 @@ func TestDockercfgDeletion(t *testing.T) {
 		rand.Seed(1)
 
 		client := fake.NewSimpleClientset(tc.ClientObjects...)
+		kubeInformerFactory := informers.NewSharedInformerFactory(client, 1*time.Second)
+		informerFactory := shared.NewInformerFactory(kubeInformerFactory, client, testclient.NewSimpleFake(), shared.DefaultListerWatcherOverrides{}, 1*time.Second)
 
-		controller := NewDockercfgDeletedController(client, DockercfgDeletedControllerOptions{})
+		controller := NewDockercfgDeletedController(client, informerFactory.Secrets(), DockercfgDeletedControllerOptions{})
+		stopChan := make(<-chan struct{})
+		informerFactory.Start(stopChan)
 
 		if tc.DeletedSecret != nil {
 			controller.secretDeleted(tc.DeletedSecret)
