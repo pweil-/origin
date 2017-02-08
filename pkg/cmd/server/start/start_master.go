@@ -592,7 +592,7 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 	oc.RunServiceAccountsController()
 	oc.RunServiceAccountTokensController(controllerManagerOptions)
 	// used by admission controllers
-	oc.RunServiceAccountPullSecretsControllers()
+	oc.RunServiceAccountPullSecretsControllers(oc.Informers)
 	oc.RunSecurityAllocationController()
 
 	if kc != nil {

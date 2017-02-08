@@ -5,16 +5,14 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	"github.com/openshift/origin/pkg/controller/shared"
 
 	"k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/client/cache"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/runtime"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/util/wait"
-	"k8s.io/kubernetes/pkg/watch"
 )
 
 // NumServiceAccountUpdateRetries controls the number of times we will retry on conflict errors.
@@ -29,29 +27,16 @@ type DockercfgDeletedControllerOptions struct {
 }
 
 // NewDockercfgDeletedController returns a new *DockercfgDeletedController.
-func NewDockercfgDeletedController(cl kclientset.Interface, options DockercfgDeletedControllerOptions) *DockercfgDeletedController {
+func NewDockercfgDeletedController(cl kclientset.Interface, secretInformer shared.SecretInformer, options DockercfgDeletedControllerOptions) *DockercfgDeletedController {
 	e := &DockercfgDeletedController{
 		client: cl,
 	}
 
-	dockercfgSelector := fields.OneTermEqualSelector(api.SecretTypeField, string(api.SecretTypeDockercfg))
-	_, e.secretController = cache.NewInformer(
-		&cache.ListWatch{
-			ListFunc: func(options api.ListOptions) (runtime.Object, error) {
-				opts := api.ListOptions{FieldSelector: dockercfgSelector}
-				return e.client.Core().Secrets(api.NamespaceAll).List(opts)
-			},
-			WatchFunc: func(options api.ListOptions) (watch.Interface, error) {
-				opts := api.ListOptions{FieldSelector: dockercfgSelector, ResourceVersion: options.ResourceVersion}
-				return e.client.Core().Secrets(api.NamespaceAll).Watch(opts)
-			},
-		},
-		&api.Secret{},
-		options.Resync,
-		cache.ResourceEventHandlerFuncs{
-			DeleteFunc: e.secretDeleted,
-		},
-	)
+	informer := secretInformer.Informer()
+	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+		DeleteFunc: e.secretDeleted,
+	})
+	e.secretController = informer
 
 	return e
 }
@@ -63,7 +48,7 @@ type DockercfgDeletedController struct {
 
 	client kclientset.Interface
 
-	secretController *cache.Controller
+	secretController cache.SharedIndexInformer
 }
 
 // Runs controller loops and returns immediately
@@ -87,6 +72,9 @@ func (e *DockercfgDeletedController) Stop() {
 func (e *DockercfgDeletedController) secretDeleted(obj interface{}) {
 	dockercfgSecret, ok := obj.(*api.Secret)
 	if !ok {
+		return
+	}
+	if dockercfgSecret.Type != api.SecretTypeDockercfg {
 		return
 	}
 	if _, exists := dockercfgSecret.Annotations[ServiceAccountTokenSecretNameKey]; !exists {
