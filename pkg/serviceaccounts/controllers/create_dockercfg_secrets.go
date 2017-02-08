@@ -16,7 +16,6 @@ import (
 	"k8s.io/kubernetes/pkg/client/retry"
 	"k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/credentialprovider"
-	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/registry/core/secret"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/types"
@@ -26,6 +25,7 @@ import (
 	"k8s.io/kubernetes/pkg/util/workqueue"
 	"k8s.io/kubernetes/pkg/watch"
 
+	"github.com/openshift/origin/pkg/controller/shared"
 	osautil "github.com/openshift/origin/pkg/serviceaccounts/util"
 )
 
@@ -59,7 +59,7 @@ type DockercfgControllerOptions struct {
 }
 
 // NewDockercfgController returns a new *DockercfgController.
-func NewDockercfgController(cl kclientset.Interface, options DockercfgControllerOptions) *DockercfgController {
+func NewDockercfgController(cl kclientset.Interface, secretInformer shared.SecretInformer, options DockercfgControllerOptions) *DockercfgController {
 	e := &DockercfgController{
 		client:               cl,
 		queue:                workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
@@ -94,26 +94,14 @@ func NewDockercfgController(cl kclientset.Interface, options DockercfgController
 	)
 	e.serviceAccountCache = NewEtcdMutationCache(serviceAccountCache)
 
-	tokenSecretSelector := fields.OneTermEqualSelector(api.SecretTypeField, string(api.SecretTypeServiceAccountToken))
-	e.secretCache, e.secretController = cache.NewInformer(
-		&cache.ListWatch{
-			ListFunc: func(options api.ListOptions) (runtime.Object, error) {
-				options.FieldSelector = tokenSecretSelector
-				return e.client.Core().Secrets(api.NamespaceAll).List(options)
-			},
-			WatchFunc: func(options api.ListOptions) (watch.Interface, error) {
-				options.FieldSelector = tokenSecretSelector
-				return e.client.Core().Secrets(api.NamespaceAll).Watch(options)
-			},
-		},
-		&api.Secret{},
-		options.Resync,
-		cache.ResourceEventHandlerFuncs{
-			AddFunc:    func(cur interface{}) { e.handleTokenSecretUpdate(nil, cur) },
-			UpdateFunc: func(old, cur interface{}) { e.handleTokenSecretUpdate(old, cur) },
-			DeleteFunc: e.handleTokenSecretDelete,
-		},
-	)
+	informer := secretInformer.Informer()
+	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc:    func(cur interface{}) { e.handleTokenSecretUpdate(nil, cur) },
+		UpdateFunc: func(old, cur interface{}) { e.handleTokenSecretUpdate(old, cur) },
+		DeleteFunc: e.handleTokenSecretDelete,
+	})
+	e.secretController = informer
+	e.secretCache = secretInformer.Indexer()
 
 	e.syncHandler = e.syncServiceAccount
 
@@ -131,7 +119,7 @@ type DockercfgController struct {
 	serviceAccountCache      MutationCache
 	serviceAccountController *cache.Controller
 	secretCache              cache.Store
-	secretController         *cache.Controller
+	secretController         cache.SharedInformer
 
 	queue workqueue.RateLimitingInterface
 
@@ -143,6 +131,9 @@ type DockercfgController struct {
 // token data and triggers re-sync of service account when the data are observed.
 func (e *DockercfgController) handleTokenSecretUpdate(oldObj, newObj interface{}) {
 	secret := newObj.(*api.Secret)
+	if secret.Type != api.SecretTypeServiceAccountToken {
+		return
+	}
 	if secret.Annotations[api.CreatedByAnnotation] != CreateDockercfgSecretsController {
 		return
 	}
@@ -177,6 +168,9 @@ func (e *DockercfgController) handleTokenSecretDelete(obj interface{}) {
 			glog.V(2).Infof("Expected tombstone object to contain secret, got: %v", obj)
 			return
 		}
+	}
+	if secret.Type != api.SecretTypeServiceAccountToken {
+		return
 	}
 	if secret.Annotations[api.CreatedByAnnotation] != CreateDockercfgSecretsController {
 		return
