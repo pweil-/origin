@@ -23,8 +23,6 @@ NETWORKING_E2E_SKIP="${NETWORKING_E2E_SKIP:-}"
 NETWORKING_E2E_MINIMAL="${NETWORKING_E2E_MINIMAL:-}"
 
 DEFAULT_SKIP_LIST=(
-  # TODO(marun) This should work with docker >= 1.10
-  "openshift router"
   "\[Feature:Federation\]"
 
   # Skipped until https://github.com/openshift/origin/issues/11042 is resolved
@@ -226,7 +224,7 @@ function run-extended-tests() {
 
   if [[ -n "${log_path}" ]]; then
     if [[ -n "${dlv_debug}" ]]; then
-      os::log::warn "Not logging to file since DLV_DEBUG is enabled"
+      os::log::warning "Not logging to file since DLV_DEBUG is enabled"
     else
       test_cmd="${test_cmd} | tee ${log_path}"
     fi
@@ -268,7 +266,7 @@ TEST_EXTRA_ARGS="$@"
 
 if [[ -n "${OPENSHIFT_SKIP_BUILD:-}" ]] &&
      os::util::find::built_binary 'extended.test' >/dev/null 2>&1; then
-  os::log::warn "Skipping rebuild of test binary due to OPENSHIFT_SKIP_BUILD=1"
+  os::log::warning "Skipping rebuild of test binary due to OPENSHIFT_SKIP_BUILD=1"
 else
   hack/build-go.sh test/extended/extended.test
 fi
@@ -319,6 +317,13 @@ else
   )
 
   os::util::environment::setup_tmpdir_vars "test-extended/networking"
+
+  # Allow setting $JUNIT_REPORT to toggle output behavior
+  if [[ -n "${JUNIT_REPORT:-}" ]]; then
+    export JUNIT_REPORT_OUTPUT="${LOG_DIR}/raw_test_output.log"
+    # the Ginkgo tests also generate jUnit but expect different envars
+    export TEST_REPORT_DIR="${ARTIFACT_DIR}"
+  fi
 
   os::log::system::start
 

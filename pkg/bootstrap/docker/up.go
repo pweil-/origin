@@ -70,7 +70,7 @@ var (
 		--docker-machine=NAME argument is specified, but --create-machine is not, the command will attempt
 		to find an existing docker machine with that name and start it if it's not running.
 
-		By default, the OpenShift cluster will be setup to use a routing suffix that ends in xip.io.
+		By default, the OpenShift cluster will be setup to use a routing suffix that ends in nip.io.
 		This is to allow dynamic host names to be created for routes. An alternate routing suffix
 		can be specified using the --routing-suffix flag.
 
@@ -120,8 +120,7 @@ var (
 		"prometheus":          "examples/prometheus/prometheus.yaml",
 		"heapster standalone": "examples/heapster/heapster-standalone.yaml",
 	}
-	dockerVersion19  = semver.MustParse("1.9.0")
-	dockerVersion110 = semver.MustParse("1.10.0")
+	dockerVersion112 = semver.MustParse("1.12.0")
 )
 
 // NewCmdUp creates a command that starts openshift on Docker with reasonable defaults
@@ -198,7 +197,6 @@ type CommonStartConfig struct {
 	HTTPProxy                string
 	HTTPSProxy               string
 	NoProxy                  []string
-	SetPropagationMode       bool
 	RouterIP                 string
 	CACert                   string
 
@@ -608,20 +606,18 @@ func (c *CommonStartConfig) CheckNsenterMounter(out io.Writer) error {
 
 // CheckDockerVersion checks that the appropriate Docker version is installed based on whether we are using the nsenter mounter
 // or shared volumes for OpenShift
-func (c *CommonStartConfig) CheckDockerVersion(io.Writer) error {
-	ver, rh, err := c.DockerHelper().Version()
+func (c *CommonStartConfig) CheckDockerVersion(out io.Writer) error {
+	ver, _, err := c.DockerHelper().Version()
 	if err != nil {
-		return err
+		glog.V(1).Infof("Failed to check Docker version: %v", err)
+		fmt.Fprintf(out, "WARNING: Cannot verify Docker version\n")
+		return nil
 	}
-	needVersion := dockerVersion19
-	if !rh {
-		needVersion = dockerVersion110
-	}
+	needVersion := dockerVersion112
 	glog.V(5).Infof("Checking that docker version is at least %v", needVersion)
 	if ver.LT(needVersion) {
-		return fmt.Errorf("Docker version is %v, it needs to be %v", ver, needVersion)
+		fmt.Fprintf(out, "WARNING: Docker version is %v, it needs to be >= %v\n", ver, needVersion)
 	}
-	c.SetPropagationMode = ver.GTE(dockerVersion110)
 	return nil
 }
 
@@ -758,7 +754,6 @@ func (c *ClientStartConfig) StartOpenShift(out io.Writer) error {
 		RouterIP:                 c.RouterIP,
 		RoutingSuffix:            c.RoutingSuffix,
 		UseSharedVolume:          !c.UseNsenterMount,
-		SetPropagationMode:       c.SetPropagationMode,
 		Images:                   c.imageFormat(),
 		HostVolumesDir:           c.HostVolumesDir,
 		HostConfigDir:            c.HostConfigDir,

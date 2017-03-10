@@ -357,8 +357,15 @@ func BuildKubernetesMasterConfig(openshiftConfig *origin.MasterConfig) (*kuberne
 	if openshiftConfig.Options.KubernetesMasterConfig == nil {
 		return nil, nil
 	}
-	kubeConfig, err := kubernetes.BuildKubernetesMasterConfig(openshiftConfig.Options, openshiftConfig.RequestContextMapper, openshiftConfig.KubeClientset(), openshiftConfig.Informers, openshiftConfig.KubeAdmissionControl, openshiftConfig.Authenticator)
-	return kubeConfig, err
+	return kubernetes.BuildKubernetesMasterConfig(
+		openshiftConfig.Options,
+		openshiftConfig.RequestContextMapper,
+		openshiftConfig.KubeClientset(),
+		openshiftConfig.Informers,
+		openshiftConfig.KubeAdmissionControl,
+		openshiftConfig.Authenticator,
+		openshiftConfig.Authorizer,
+	)
 }
 
 // Master encapsulates starting the components of the master

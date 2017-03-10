@@ -77,7 +77,6 @@ type StartOptions struct {
 	RoutingSuffix            string
 	DNSPort                  int
 	UseSharedVolume          bool
-	SetPropagationMode       bool
 	Images                   string
 	HostVolumesDir           string
 	HostConfigDir            string
@@ -251,11 +250,7 @@ func (h *Helper) Start(opt *StartOptions, out io.Writer) (string, error) {
 		env = append(env, "OPENSHIFT_CONTAINERIZED=false")
 	} else {
 		binds = append(binds, "/:/rootfs:ro")
-		propagationMode := ""
-		if opt.SetPropagationMode {
-			propagationMode = ":rslave"
-		}
-		binds = append(binds, fmt.Sprintf("%[1]s:%[1]s%[2]s", opt.HostVolumesDir, propagationMode))
+		binds = append(binds, fmt.Sprintf("%[1]s:%[1]s:rslave", opt.HostVolumesDir))
 	}
 	env = append(env, opt.Environment...)
 	binds = append(binds, fmt.Sprintf("%[1]s:%[1]s", opt.DockerRoot))
@@ -452,11 +447,7 @@ func (h *Helper) StartNode(opt *StartOptions, out io.Writer) error {
 		env = append(env, "OPENSHIFT_CONTAINERIZED=false")
 	} else {
 		binds = append(binds, "/:/rootfs:ro")
-		propagationMode := ""
-		if opt.SetPropagationMode {
-			propagationMode = ":rslave"
-		}
-		binds = append(binds, fmt.Sprintf("%[1]s:%[1]s%[2]s", opt.HostVolumesDir, propagationMode))
+		binds = append(binds, fmt.Sprintf("%[1]s:%[1]s:rslave", opt.HostVolumesDir))
 	}
 	env = append(env, opt.Environment...)
 
@@ -593,7 +584,7 @@ func (h *Helper) updateConfig(configDir string, opt *StartOptions) error {
 	if len(opt.RoutingSuffix) > 0 {
 		cfg.RoutingConfig.Subdomain = opt.RoutingSuffix
 	} else {
-		cfg.RoutingConfig.Subdomain = fmt.Sprintf("%s.xip.io", opt.RouterIP)
+		cfg.RoutingConfig.Subdomain = fmt.Sprintf("%s.nip.io", opt.RouterIP)
 	}
 
 	if len(opt.MetricsHost) > 0 && cfg.AssetConfig != nil {

@@ -7,6 +7,8 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	kauthorizationapi "k8s.io/kubernetes/pkg/apis/authorization"
+	kauthorizer "k8s.io/kubernetes/pkg/auth/authorizer"
 	"k8s.io/kubernetes/pkg/conversion"
 	kutilerrors "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -174,6 +176,7 @@ func (userEvaluator) ResolveRules(scope, namespace string, clusterPolicyGetter c
 	case UserAccessCheck:
 		return []authorizationapi.PolicyRule{
 			{Verbs: sets.NewString("create"), APIGroups: []string{authorizationapi.GroupName}, Resources: sets.NewString("subjectaccessreviews", "localsubjectaccessreviews"), AttributeRestrictions: &authorizationapi.IsPersonalSubjectAccessReview{}},
+			authorizationapi.NewRule("create").Groups(kauthorizationapi.GroupName).Resources("selfsubjectaccessreviews").RuleOrDie(),
 			authorizationapi.NewRule("create").Groups(authorizationapi.GroupName).Resources("selfsubjectrulesreviews").RuleOrDie(),
 		}, nil
 	case UserListScopedProjects:
@@ -347,15 +350,16 @@ func (e clusterRoleEvaluator) ResolveGettableNamespaces(scope string, clusterPol
 		return nil, err
 	}
 
-	attributes := authorizer.DefaultAuthorizationAttributes{
-		APIGroup: kapi.GroupName,
-		Verb:     "get",
-		Resource: "namespaces",
+	attributes := kauthorizer.AttributesRecord{
+		APIGroup:        kapi.GroupName,
+		Verb:            "get",
+		Resource:        "namespaces",
+		ResourceRequest: true,
 	}
 
 	errors := []error{}
 	for _, rule := range rules {
-		matches, err := attributes.RuleMatches(rule)
+		matches, err := authorizer.RuleMatches(attributes, rule)
 		if err != nil {
 			errors = append(errors, err)
 			continue
