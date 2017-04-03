@@ -184,6 +184,7 @@ type RunContainerOptions struct {
 	PostExec         PostExecutor
 	TargetImage      bool
 	NetworkMode      string
+	UsernsMode       string
 	User             string
 	CGroupLimits     *api.CGroupLimits
 	CapDrop          []string
@@ -222,6 +223,7 @@ func (rco RunContainerOptions) asDockerHostConfig() dockercontainer.HostConfig {
 		CapDrop:         rco.CapDrop,
 		PublishAllPorts: rco.TargetImage,
 		NetworkMode:     dockercontainer.NetworkMode(rco.NetworkMode),
+		UsernsMode:      dockercontainer.UsernsMode(rco.UsernsMode),
 		Binds:           rco.Binds,
 	}
 	if rco.CGroupLimits != nil {
@@ -869,6 +871,7 @@ func (d *stiDocker) holdHijackedConnection(tty bool, inputStream io.Reader, outp
 // RunContainer creates and starts a container using the image specified in opts
 // with the ability to stream input and/or output.
 func (d *stiDocker) RunContainer(opts RunContainerOptions) error {
+	glog.V(0).Infof("------------------------- opts: %#v", opts)
 	createOpts := opts.asDockerCreateContainerOptions()
 
 	// get info about the specified image

@@ -526,6 +526,7 @@ func (builder *STI) Save(config *api.Config) (err error) {
 		Stderr:          errWriter,
 		OnStart:         extractFunc,
 		NetworkMode:     string(config.DockerNetworkMode),
+		UsernsMode:      usernsMode(config.DockerNetworkMode),
 		CGroupLimits:    config.CGroupLimits,
 		CapDrop:         config.DropCapabilities,
 	}
@@ -575,6 +576,7 @@ func (builder *STI) Execute(command string, user string, config *api.Config) err
 		User:            user,
 		PostExec:        builder.postExecutor,
 		NetworkMode:     string(config.DockerNetworkMode),
+		UsernsMode:      usernsMode(config.DockerNetworkMode),
 		CGroupLimits:    config.CGroupLimits,
 		CapDrop:         config.DropCapabilities,
 		Binds:           config.BuildVolumes.AsBinds(),
@@ -747,5 +749,15 @@ func firstNonEmpty(args ...string) string {
 			return value
 		}
 	}
+	return ""
+}
+
+func usernsMode(networkMode api.DockerNetworkMode) string {
+	glog.V(2).Info("pweil determining the user ns mode using %s ...", networkMode)
+	if strings.HasPrefix(string(networkMode), string(api.DockerNetworkModeContainerPrefix)) {
+		glog.V(2).Info("using host user ns mode ...")
+		return "host"
+	}
+	glog.V(2).Info("using empty user ns mode ...")
 	return ""
 }
